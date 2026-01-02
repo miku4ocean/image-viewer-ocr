@@ -191,6 +191,15 @@
                     <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-fit">適合</button>
                 </div>
 
+                <!-- 畫布導航按鈕 -->
+                <div class="canvas-nav" id="canvas-nav">
+                    <button class="nav-btn nav-btn-up" id="nav-up" title="向上滾動">▲</button>
+                    <button class="nav-btn nav-btn-down" id="nav-down" title="向下滾動">▼</button>
+                    <button class="nav-btn nav-btn-left" id="nav-left" title="向左滾動">◀</button>
+                    <button class="nav-btn nav-btn-right" id="nav-right" title="向右滾動">▶</button>
+                    <button class="nav-btn nav-btn-hand" id="nav-hand" title="拖曳模式 (按住空白鍵)">✋</button>
+                </div>
+
                 <!-- 歡迎畫面 -->
                 <div class="welcome-screen" id="welcome-screen">
                     <div class="welcome-content">
@@ -411,6 +420,22 @@
                     <span class="nordic-checkbox-box"></span>
                     <span>維持比例</span>
                 </label>
+
+                <!-- 解析度設定 -->
+                <div class="resize-divider"></div>
+                <div class="resize-dpi-section">
+                    <div class="resize-input-group">
+                        <label>解析度 (DPI)</label>
+                        <select class="nordic-input" id="resize-dpi">
+                            <option value="72">72 DPI (螢幕)</option>
+                            <option value="96">96 DPI (Windows)</option>
+                            <option value="150">150 DPI (中等)</option>
+                            <option value="300" selected>300 DPI (列印)</option>
+                            <option value="600">600 DPI (高品質)</option>
+                        </select>
+                    </div>
+                    <p class="resize-dpi-hint">DPI 設定會影響列印時的實際尺寸</p>
+                </div>
             </div>
             <div class="nordic-card-footer nordic-flex nordic-justify-between">
                 <button class="nordic-btn nordic-btn-secondary" id="resize-cancel">取消</button>

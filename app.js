@@ -48,7 +48,11 @@ const state = {
 
     // 尺寸調整
     maintainRatio: true,
-    aspectRatio: 1
+    aspectRatio: 1,
+    dpi: 300,
+
+    // 畫布拖曳模式
+    isDragMode: false
 };
 
 // ========================================
@@ -133,9 +137,18 @@ const elements = {
     resizeHeight: document.getElementById('resize-height'),
     resizeLink: document.getElementById('resize-link'),
     resizeMaintainRatio: document.getElementById('resize-maintain-ratio'),
+    resizeDpi: document.getElementById('resize-dpi'),
     resizeCancel: document.getElementById('resize-cancel'),
     resizeApply: document.getElementById('resize-apply'),
     resizeModalClose: document.getElementById('resize-modal-close'),
+
+    // 畫布導航
+    canvasNav: document.getElementById('canvas-nav'),
+    navUp: document.getElementById('nav-up'),
+    navDown: document.getElementById('nav-down'),
+    navLeft: document.getElementById('nav-left'),
+    navRight: document.getElementById('nav-right'),
+    navHand: document.getElementById('nav-hand'),
 
     // 狀態
     statusText: document.getElementById('status-text'),
@@ -1284,6 +1297,9 @@ function initEventListeners() {
 
     // OCR 區域選擇拖曳
     initOCRRegionHandlers();
+
+    // 畫布導航和拖曳
+    initCanvasNavigation();
 }
 
 // 裁切區域拖曳處理（改進版 - 支援四邊拖曳）
@@ -1493,6 +1509,111 @@ function initOCRRegionHandlers() {
     });
 }
 
+// 畫布導航和拖曳功能
+function initCanvasNavigation() {
+    const scrollAmount = 100;
+
+    // 導航按鈕事件
+    if (elements.navUp) {
+        elements.navUp.addEventListener('click', () => {
+            elements.imageViewport.scrollTop -= scrollAmount;
+        });
+    }
+
+    if (elements.navDown) {
+        elements.navDown.addEventListener('click', () => {
+            elements.imageViewport.scrollTop += scrollAmount;
+        });
+    }
+
+    if (elements.navLeft) {
+        elements.navLeft.addEventListener('click', () => {
+            elements.imageViewport.scrollLeft -= scrollAmount;
+        });
+    }
+
+    if (elements.navRight) {
+        elements.navRight.addEventListener('click', () => {
+            elements.imageViewport.scrollLeft += scrollAmount;
+        });
+    }
+
+    // 拖曳模式切換
+    if (elements.navHand) {
+        elements.navHand.addEventListener('click', () => {
+            state.isDragMode = !state.isDragMode;
+            elements.navHand.classList.toggle('active', state.isDragMode);
+            elements.imageViewport.classList.toggle('drag-mode', state.isDragMode);
+
+            if (state.isDragMode) {
+                showToast('拖曳模式已啟用，可拖曳畫布移動', 'info');
+            } else {
+                showToast('拖曳模式已關閉');
+            }
+        });
+    }
+
+    // 畫布拖曳功能
+    let isDragging = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    elements.imageViewport.addEventListener('mousedown', (e) => {
+        // 只在拖曳模式或按住空白鍵時啟用
+        if (!state.isDragMode && !state.isSpacePressed) return;
+        if (state.isCropping || state.isSelectingOCRRegion) return;
+
+        isDragging = true;
+        elements.imageViewport.classList.add('dragging');
+        startX = e.pageX - elements.imageViewport.offsetLeft;
+        startY = e.pageY - elements.imageViewport.offsetTop;
+        scrollLeft = elements.imageViewport.scrollLeft;
+        scrollTop = elements.imageViewport.scrollTop;
+        e.preventDefault();
+    });
+
+    elements.imageViewport.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const x = e.pageX - elements.imageViewport.offsetLeft;
+        const y = e.pageY - elements.imageViewport.offsetTop;
+        const walkX = (x - startX) * 1.5;
+        const walkY = (y - startY) * 1.5;
+
+        elements.imageViewport.scrollLeft = scrollLeft - walkX;
+        elements.imageViewport.scrollTop = scrollTop - walkY;
+    });
+
+    elements.imageViewport.addEventListener('mouseup', () => {
+        isDragging = false;
+        elements.imageViewport.classList.remove('dragging');
+    });
+
+    elements.imageViewport.addEventListener('mouseleave', () => {
+        isDragging = false;
+        elements.imageViewport.classList.remove('dragging');
+    });
+
+    // 空白鍵臨時啟用拖曳模式
+    state.isSpacePressed = false;
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !state.isSpacePressed && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            state.isSpacePressed = true;
+            elements.imageViewport.classList.add('drag-mode');
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            state.isSpacePressed = false;
+            if (!state.isDragMode) {
+                elements.imageViewport.classList.remove('drag-mode');
+            }
+        }
+    });
+}
+
 // ========================================
 // 12. 初始化
 // ========================================
@@ -1504,3 +1625,4 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+

@@ -467,6 +467,111 @@ body {
 }
 
 /* ----------------------------------------
+   Canvas Navigation - 畫布導航按鈕
+   ---------------------------------------- */
+.canvas-nav {
+    position: absolute;
+    bottom: var(--nordic-spacing-lg);
+    right: var(--nordic-spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 20;
+}
+
+.nav-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--nordic-radius-md);
+    background: var(--nordic-bg-secondary);
+    color: var(--nordic-text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: var(--nordic-shadow-sm);
+    transition: all var(--nordic-transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover {
+    background: var(--nordic-bg-hover);
+    transform: scale(1.05);
+}
+
+.nav-btn:active {
+    transform: scale(0.95);
+}
+
+.nav-btn.active {
+    background: var(--nordic-accent-primary);
+    color: white;
+}
+
+/* 導航按鈕排列 */
+.canvas-nav {
+    display: grid;
+    grid-template-areas:
+        ". up ."
+        "left hand right"
+        ". down .";
+    grid-template-columns: 36px 36px 36px;
+    grid-template-rows: 36px 36px 36px;
+    gap: 4px;
+}
+
+.nav-btn-up {
+    grid-area: up;
+}
+
+.nav-btn-down {
+    grid-area: down;
+}
+
+.nav-btn-left {
+    grid-area: left;
+}
+
+.nav-btn-right {
+    grid-area: right;
+}
+
+.nav-btn-hand {
+    grid-area: hand;
+    font-size: 18px;
+}
+
+/* 拖曳模式游標 */
+.image-viewport.drag-mode {
+    cursor: grab;
+}
+
+.image-viewport.drag-mode:active,
+.image-viewport.dragging {
+    cursor: grabbing;
+}
+
+/* ----------------------------------------
+   Resize Modal - DPI 設定樣式
+   ---------------------------------------- */
+.resize-divider {
+    height: 1px;
+    background: var(--nordic-border-color);
+    margin: var(--nordic-spacing-md) 0;
+}
+
+.resize-dpi-section {
+    margin-top: var(--nordic-spacing-sm);
+}
+
+.resize-dpi-hint {
+    font-size: var(--nordic-font-size-xs);
+    color: var(--nordic-text-muted);
+    margin-top: var(--nordic-spacing-xs);
+}
+
+/* ----------------------------------------
    Crop Overlay - 裁切遮罩
    ---------------------------------------- */
 .crop-overlay {
