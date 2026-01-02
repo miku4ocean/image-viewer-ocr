@@ -986,9 +986,15 @@ function saveImage() {
 
     const quality = mimeType === 'image/jpeg' ? 0.92 : undefined;
 
-    // 產生檔名
-    const baseName = state.fileName.replace(/\.[^.]+$/, '') || 'image';
-    const downloadName = `${baseName}_edited.${extension}`;
+    // 產生檔名：images_yyyyMMddHHmm.extension
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const timestamp = `${year}${month}${day}${hour}${minute}`;
+    const downloadName = `images_${timestamp}.${extension}`;
 
     outputCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
