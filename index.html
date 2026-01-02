@@ -136,12 +136,61 @@
                             <div class="filter-preview sketch"></div>
                             <span>素描</span>
                         </button>
+                        <!-- 第二批新增濾鏡 -->
+                        <button class="filter-item" data-filter="cyberpunk">
+                            <div class="filter-preview cyberpunk"></div>
+                            <span>賽博龐克</span>
+                        </button>
+                        <button class="filter-item" data-filter="sunset">
+                            <div class="filter-preview sunset"></div>
+                            <span>夕陽</span>
+                        </button>
+                        <button class="filter-item" data-filter="ocean">
+                            <div class="filter-preview ocean"></div>
+                            <span>海洋</span>
+                        </button>
+                        <button class="filter-item" data-filter="forest">
+                            <div class="filter-preview forest"></div>
+                            <span>森林</span>
+                        </button>
+                        <button class="filter-item" data-filter="rose">
+                            <div class="filter-preview rose"></div>
+                            <span>玫瑰</span>
+                        </button>
+                        <button class="filter-item" data-filter="golden">
+                            <div class="filter-preview golden"></div>
+                            <span>金色</span>
+                        </button>
+                        <button class="filter-item" data-filter="chrome">
+                            <div class="filter-preview chrome"></div>
+                            <span>金屬</span>
+                        </button>
+                        <button class="filter-item" data-filter="noir">
+                            <div class="filter-preview noir"></div>
+                            <span>黑色電影</span>
+                        </button>
+                        <button class="filter-item" data-filter="dream">
+                            <div class="filter-preview dream"></div>
+                            <span>夢幻</span>
+                        </button>
+                        <button class="filter-item" data-filter="pop">
+                            <div class="filter-preview pop"></div>
+                            <span>普普</span>
+                        </button>
                     </div>
                 </div>
             </aside>
 
             <!-- 中央 - 圖片顯示區 -->
             <section class="canvas-area" id="canvas-area">
+                <!-- 縮放控制（移到右上角） -->
+                <div class="zoom-controls" id="zoom-controls-float">
+                    <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-out">−</button>
+                    <span class="zoom-level" id="zoom-level">100%</span>
+                    <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-in">+</button>
+                    <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-fit">適合</button>
+                </div>
+
                 <!-- 歡迎畫面 -->
                 <div class="welcome-screen" id="welcome-screen">
                     <div class="welcome-content">
@@ -184,13 +233,6 @@
                         <div class="ocr-region-overlay nordic-hidden" id="ocr-region-overlay">
                             <div class="ocr-region-box" id="ocr-region-box"></div>
                         </div>
-                    </div>
-                    <!-- 縮放控制 -->
-                    <div class="zoom-controls">
-                        <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-out">−</button>
-                        <span class="zoom-level" id="zoom-level">100%</span>
-                        <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-in">+</button>
-                        <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-zoom-fit">適合</button>
                     </div>
                 </div>
 

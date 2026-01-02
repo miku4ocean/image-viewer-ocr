@@ -381,13 +381,24 @@ const filters = {
     vintage: 'sepia(40%) contrast(90%) brightness(95%)',
     dramatic: 'contrast(130%) saturate(120%)',
     fade: 'contrast(80%) brightness(110%) saturate(80%)',
-    // 新增濾鏡
+    // 第一批新增濾鏡
     vivid: 'saturate(180%) contrast(110%)',
     blur: 'blur(2px)',
     sharpen: 'contrast(120%) brightness(105%)',
     vignette: 'brightness(95%) contrast(105%)',
     invert: 'invert(100%)',
-    sketch: 'grayscale(100%) contrast(150%) brightness(120%)'
+    sketch: 'grayscale(100%) contrast(150%) brightness(120%)',
+    // 第二批新增濾鏡
+    cyberpunk: 'saturate(200%) hue-rotate(180deg) contrast(120%)',
+    sunset: 'sepia(30%) saturate(150%) hue-rotate(-20deg) brightness(105%)',
+    ocean: 'saturate(120%) hue-rotate(180deg) brightness(95%)',
+    forest: 'saturate(110%) hue-rotate(60deg) brightness(95%)',
+    rose: 'saturate(130%) hue-rotate(-30deg) brightness(105%)',
+    golden: 'sepia(50%) saturate(150%) brightness(110%)',
+    chrome: 'saturate(0%) contrast(140%) brightness(110%)',
+    noir: 'grayscale(100%) contrast(150%) brightness(90%)',
+    dream: 'saturate(80%) brightness(115%) contrast(85%) blur(0.5px)',
+    pop: 'saturate(200%) contrast(150%) brightness(105%)'
 };
 
 function applyAllEffects() {

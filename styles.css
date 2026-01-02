@@ -243,6 +243,47 @@ body {
     filter: grayscale(100%) contrast(150%) brightness(120%);
 }
 
+/* 第二批濾鏡預覽 */
+.filter-preview.cyberpunk {
+    filter: saturate(200%) hue-rotate(180deg) contrast(120%);
+}
+
+.filter-preview.sunset {
+    filter: sepia(30%) saturate(150%) hue-rotate(-20deg) brightness(105%);
+}
+
+.filter-preview.ocean {
+    filter: saturate(120%) hue-rotate(180deg) brightness(95%);
+}
+
+.filter-preview.forest {
+    filter: saturate(110%) hue-rotate(60deg) brightness(95%);
+}
+
+.filter-preview.rose {
+    filter: saturate(130%) hue-rotate(-30deg) brightness(105%);
+}
+
+.filter-preview.golden {
+    filter: sepia(50%) saturate(150%) brightness(110%);
+}
+
+.filter-preview.chrome {
+    filter: saturate(0%) contrast(140%) brightness(110%);
+}
+
+.filter-preview.noir {
+    filter: grayscale(100%) contrast(150%) brightness(90%);
+}
+
+.filter-preview.dream {
+    filter: saturate(80%) brightness(115%) contrast(85%) blur(0.5px);
+}
+
+.filter-preview.pop {
+    filter: saturate(200%) contrast(150%) brightness(105%);
+}
+
 .filter-item span {
     font-size: var(--nordic-font-size-xs);
     color: var(--nordic-text-secondary);
@@ -362,7 +403,7 @@ body {
     position: relative;
 }
 
-/* Image Viewport */
+/* Image Viewport - 有捲動條 */
 .image-viewport {
     flex: 1;
     display: flex;
@@ -373,20 +414,40 @@ body {
     padding: var(--nordic-spacing-lg);
 }
 
+/* 確保捲動條可見 */
+.image-viewport::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.image-viewport::-webkit-scrollbar-track {
+    background: var(--nordic-bg-tertiary);
+    border-radius: 6px;
+}
+
+.image-viewport::-webkit-scrollbar-thumb {
+    background: var(--nordic-border-color);
+    border-radius: 6px;
+    border: 2px solid var(--nordic-bg-tertiary);
+}
+
+.image-viewport::-webkit-scrollbar-thumb:hover {
+    background: var(--nordic-text-muted);
+}
+
 #image-canvas {
-    max-width: 100%;
-    max-height: 100%;
     box-shadow: var(--nordic-shadow-lg);
     border-radius: var(--nordic-radius-sm);
     background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+    /* 移除 max 限制，讓放大時可以滾動 */
+    flex-shrink: 0;
 }
 
-/* Zoom Controls */
+/* Zoom Controls - 縮放控制（移到右上角） */
 .zoom-controls {
     position: absolute;
-    bottom: var(--nordic-spacing-lg);
-    left: 50%;
-    transform: translateX(-50%);
+    top: var(--nordic-spacing-md);
+    right: var(--nordic-spacing-md);
     display: flex;
     align-items: center;
     gap: var(--nordic-spacing-sm);
@@ -394,6 +455,7 @@ body {
     background: var(--nordic-bg-secondary);
     border-radius: var(--nordic-radius-full);
     box-shadow: var(--nordic-shadow-md);
+    z-index: 20;
 }
 
 .zoom-level {
