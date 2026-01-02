@@ -56,14 +56,41 @@
    - 方式二：長按（500ms）進入精確選取模式，再調整頭尾
 5. **複製或儲存**：使用工具列按鈕複製文字或儲存為檔案
 
+## 🖥️ 版本規劃
+
+本專案提供兩種使用方式：
+
+### 🌐 Web 線上版本
+- 部署於 GitHub Pages
+- 無需安裝，直接透過瀏覽器使用
+- 適合快速使用和跨平台存取
+
+### 🍎 Mac 應用程式
+- 使用 Electron 打包的原生應用程式
+- 提供 DMG 安裝檔
+- 更好的系統整合和效能
+
 ## 🚀 開始使用
 
+### Web 版本
 ```bash
 # 直接用瀏覽器開啟 index.html
 open index.html
 
 # 或使用本地伺服器
 npx serve .
+```
+
+### Mac 版本
+```bash
+# 安裝依賴
+npm install
+
+# 開發模式
+npm run electron:dev
+
+# 打包 DMG
+npm run electron:build
 ```
 
 ## 📁 專案結構

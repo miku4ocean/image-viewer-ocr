@@ -1,0 +1,768 @@
+/**
+ * Image Viewer OCR - 應用程式樣式
+ * 基於 Nordic Design System 的圖片檢視器
+ */
+
+/* ========================================
+   1. 全域樣式
+   ======================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--nordic-bg-primary);
+}
+
+/* ========================================
+   2. 應用程式佈局
+   ======================================== */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--nordic-bg-primary);
+}
+
+/* ----------------------------------------
+   Header - 頂部工具列
+   ---------------------------------------- */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    padding: 0 var(--nordic-spacing-lg);
+    background: var(--nordic-bg-secondary);
+    border-bottom: 1px solid var(--nordic-border-color);
+    box-shadow: var(--nordic-shadow-sm);
+    z-index: 10;
+}
+
+.header-left,
+.header-right {
+    flex: 0 0 auto;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.app-title {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-sm);
+    font-size: var(--nordic-font-size-lg);
+    font-weight: var(--nordic-font-weight-semibold);
+    color: var(--nordic-text-primary);
+}
+
+.app-icon {
+    font-size: 24px;
+}
+
+/* Toolbar */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-xs);
+    padding: var(--nordic-spacing-xs);
+    background: var(--nordic-bg-tertiary);
+    border-radius: var(--nordic-radius-lg);
+}
+
+.toolbar-btn {
+    padding: 8px 14px;
+}
+
+.toolbar-btn .btn-icon {
+    font-size: 16px;
+}
+
+.toolbar-btn .btn-text {
+    font-size: var(--nordic-font-size-sm);
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--nordic-border-color);
+    margin: 0 var(--nordic-spacing-xs);
+}
+
+/* ----------------------------------------
+   Main Content - 主要內容區
+   ---------------------------------------- */
+.app-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ----------------------------------------
+   Sidebar - 側邊欄
+   ---------------------------------------- */
+.sidebar {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    background: var(--nordic-bg-secondary);
+    border: 1px solid var(--nordic-border-color);
+}
+
+.sidebar-left {
+    border-right: 1px solid var(--nordic-border-color);
+}
+
+.sidebar-right {
+    border-left: 1px solid var(--nordic-border-color);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--nordic-spacing-md);
+    border-bottom: 1px solid var(--nordic-border-color);
+}
+
+.sidebar-header h3 {
+    font-size: var(--nordic-font-size-base);
+    font-weight: var(--nordic-font-weight-semibold);
+    color: var(--nordic-text-primary);
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--nordic-spacing-md);
+}
+
+/* ----------------------------------------
+   Filter Grid - 濾鏡網格
+   ---------------------------------------- */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--nordic-spacing-sm);
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nordic-spacing-xs);
+    padding: var(--nordic-spacing-sm);
+    background: var(--nordic-bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--nordic-radius-md);
+    cursor: pointer;
+    transition: all var(--nordic-transition-fast);
+}
+
+.filter-item:hover {
+    background: var(--nordic-bg-hover);
+    transform: translateY(-2px);
+}
+
+.filter-item.active {
+    border-color: var(--nordic-accent-primary);
+    background: var(--nordic-bg-secondary);
+}
+
+.filter-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--nordic-radius-sm);
+    background: linear-gradient(135deg, #a8b8c8 0%, #e8eaef 50%, #c8d0d8 100%);
+    box-shadow: var(--nordic-shadow-sm);
+}
+
+/* 濾鏡預覽效果 */
+.filter-preview.grayscale {
+    filter: grayscale(100%);
+}
+
+.filter-preview.sepia {
+    filter: sepia(80%);
+}
+
+.filter-preview.warm {
+    filter: sepia(20%) saturate(140%) hue-rotate(-10deg);
+}
+
+.filter-preview.cool {
+    filter: saturate(80%) hue-rotate(20deg);
+}
+
+.filter-preview.vintage {
+    filter: sepia(40%) contrast(90%) brightness(95%);
+}
+
+.filter-preview.dramatic {
+    filter: contrast(130%) saturate(120%);
+}
+
+.filter-preview.fade {
+    filter: contrast(80%) brightness(110%) saturate(80%);
+}
+
+.filter-item span {
+    font-size: var(--nordic-font-size-xs);
+    color: var(--nordic-text-secondary);
+}
+
+/* ----------------------------------------
+   Adjustments - 調整面板
+   ---------------------------------------- */
+.adjustment-section {
+    margin-bottom: var(--nordic-spacing-md);
+}
+
+.auto-adjust-btn {
+    width: 100%;
+}
+
+.adjustment-group {
+    margin-bottom: var(--nordic-spacing-md);
+}
+
+.adjustment-label {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-xs);
+    margin-bottom: var(--nordic-spacing-xs);
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-secondary);
+}
+
+.adjustment-icon {
+    font-size: 14px;
+}
+
+.adjustment-value {
+    margin-left: auto;
+    font-weight: var(--nordic-font-weight-medium);
+    color: var(--nordic-text-primary);
+    min-width: 36px;
+    text-align: right;
+}
+
+.adjustment-divider {
+    height: 1px;
+    background: var(--nordic-border-color);
+    margin: var(--nordic-spacing-lg) 0;
+}
+
+/* ----------------------------------------
+   Canvas Area - 圖片顯示區
+   ---------------------------------------- */
+.canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--nordic-bg-primary);
+    overflow: hidden;
+}
+
+/* Welcome Screen */
+.welcome-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nordic-bg-primary);
+    z-index: 5;
+}
+
+.welcome-content {
+    text-align: center;
+    padding: var(--nordic-spacing-2xl);
+}
+
+.welcome-icon {
+    font-size: 80px;
+    margin-bottom: var(--nordic-spacing-lg);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.welcome-content h2 {
+    font-size: var(--nordic-font-size-2xl);
+    font-weight: var(--nordic-font-weight-semibold);
+    color: var(--nordic-text-primary);
+    margin-bottom: var(--nordic-spacing-sm);
+}
+
+.welcome-content p {
+    color: var(--nordic-text-muted);
+    margin-bottom: var(--nordic-spacing-lg);
+}
+
+.welcome-hint {
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-muted);
+    margin-top: var(--nordic-spacing-md);
+}
+
+/* Editor Container */
+.editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Image Viewport */
+.image-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: auto;
+    padding: var(--nordic-spacing-lg);
+}
+
+#image-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: var(--nordic-shadow-lg);
+    border-radius: var(--nordic-radius-sm);
+    background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    position: absolute;
+    bottom: var(--nordic-spacing-lg);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
+    background: var(--nordic-bg-secondary);
+    border-radius: var(--nordic-radius-full);
+    box-shadow: var(--nordic-shadow-md);
+}
+
+.zoom-level {
+    min-width: 50px;
+    text-align: center;
+    font-size: var(--nordic-font-size-sm);
+    font-weight: var(--nordic-font-weight-medium);
+    color: var(--nordic-text-primary);
+}
+
+/* ----------------------------------------
+   Crop Overlay - 裁切遮罩
+   ---------------------------------------- */
+.crop-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.crop-area {
+    position: absolute;
+    border: 2px dashed white;
+    background: transparent;
+    cursor: move;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.crop-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border: 2px solid var(--nordic-accent-primary);
+    border-radius: 50%;
+}
+
+.crop-handle-nw {
+    top: -6px;
+    left: -6px;
+    cursor: nw-resize;
+}
+
+.crop-handle-ne {
+    top: -6px;
+    right: -6px;
+    cursor: ne-resize;
+}
+
+.crop-handle-sw {
+    bottom: -6px;
+    left: -6px;
+    cursor: sw-resize;
+}
+
+.crop-handle-se {
+    bottom: -6px;
+    right: -6px;
+    cursor: se-resize;
+}
+
+/* ----------------------------------------
+   OCR Overlay - 文字辨識層
+   ---------------------------------------- */
+.ocr-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    pointer-events: none;
+}
+
+.ocr-text-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+}
+
+.ocr-word {
+    position: absolute;
+    background: transparent;
+    cursor: text;
+    transition: background 0.15s ease;
+}
+
+.ocr-word:hover {
+    background: rgba(90, 138, 196, 0.2);
+}
+
+.ocr-word.selected {
+    background: rgba(90, 138, 196, 0.4);
+}
+
+.ocr-selection {
+    position: absolute;
+    background: rgba(90, 138, 196, 0.3);
+    border: 1px solid var(--nordic-info);
+    pointer-events: none;
+    display: none;
+}
+
+/* OCR 選取手柄 */
+.ocr-handle {
+    position: absolute;
+    width: 14px;
+    height: 22px;
+    background: var(--nordic-info);
+    border-radius: 7px;
+    cursor: col-resize;
+    pointer-events: auto;
+    z-index: 20;
+}
+
+.ocr-handle::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 14px;
+    background: white;
+    border-radius: 1px;
+    top: 4px;
+    left: 6px;
+}
+
+.ocr-handle-start {
+    transform: translateX(-50%);
+}
+
+.ocr-handle-end {
+    transform: translateX(50%);
+}
+
+/* ----------------------------------------
+   OCR Result Panel - 辨識結果面板
+   ---------------------------------------- */
+.ocr-result-panel {
+    position: absolute;
+    bottom: var(--nordic-spacing-lg);
+    right: var(--nordic-spacing-lg);
+    width: 360px;
+    max-height: 300px;
+    background: var(--nordic-bg-secondary);
+    border-radius: var(--nordic-radius-lg);
+    box-shadow: var(--nordic-shadow-xl);
+    border: 1px solid var(--nordic-border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+}
+
+.ocr-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--nordic-spacing-md);
+    border-bottom: 1px solid var(--nordic-border-color);
+}
+
+.ocr-result-header h3 {
+    font-size: var(--nordic-font-size-base);
+    font-weight: var(--nordic-font-weight-semibold);
+}
+
+.ocr-result-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--nordic-spacing-md);
+}
+
+.ocr-text-output {
+    width: 100%;
+    min-height: 120px;
+    padding: var(--nordic-spacing-sm);
+    background: var(--nordic-bg-tertiary);
+    border: 1px solid var(--nordic-border-color);
+    border-radius: var(--nordic-radius-sm);
+    font-family: var(--nordic-font-family);
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-primary);
+    resize: vertical;
+}
+
+.ocr-text-output:focus {
+    outline: none;
+    border-color: var(--nordic-accent-primary);
+}
+
+.ocr-result-footer {
+    display: flex;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-md);
+    border-top: 1px solid var(--nordic-border-color);
+}
+
+.ocr-result-footer button {
+    flex: 1;
+}
+
+/* ----------------------------------------
+   Footer - 底部狀態列
+   ---------------------------------------- */
+.app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    padding: 0 var(--nordic-spacing-md);
+    background: var(--nordic-bg-secondary);
+    border-top: 1px solid var(--nordic-border-color);
+    font-size: var(--nordic-font-size-xs);
+    color: var(--nordic-text-muted);
+}
+
+.footer-center {
+    font-weight: var(--nordic-font-weight-medium);
+}
+
+/* ========================================
+   3. Modal - 對話框
+   ======================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--nordic-z-modal);
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    min-width: 400px;
+    max-width: 90vw;
+    animation: modalIn 0.25s ease;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--nordic-text-muted);
+    cursor: pointer;
+    transition: color var(--nordic-transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--nordic-text-primary);
+}
+
+/* Resize Modal */
+.resize-form {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--nordic-spacing-md);
+    margin-bottom: var(--nordic-spacing-md);
+}
+
+.resize-input-group {
+    flex: 1;
+}
+
+.resize-input-group label {
+    display: block;
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-secondary);
+    margin-bottom: var(--nordic-spacing-xs);
+}
+
+.resize-link {
+    font-size: 20px;
+    color: var(--nordic-accent-primary);
+    padding-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.resize-link.unlinked {
+    opacity: 0.4;
+}
+
+/* ========================================
+   4. Loading Overlay - 載入遮罩
+   ======================================== */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(248, 249, 251, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--nordic-z-overlay);
+    backdrop-filter: blur(4px);
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--nordic-spacing-md);
+}
+
+.loading-text {
+    font-size: var(--nordic-font-size-base);
+    color: var(--nordic-text-secondary);
+}
+
+/* ========================================
+   5. Drag & Drop States - 拖放狀態
+   ======================================== */
+.canvas-area.drag-over {
+    background: var(--nordic-info-light);
+}
+
+.canvas-area.drag-over .welcome-content {
+    transform: scale(1.02);
+}
+
+.canvas-area.drag-over::after {
+    content: '放開以載入圖片';
+    position: absolute;
+    inset: var(--nordic-spacing-lg);
+    border: 3px dashed var(--nordic-info);
+    border-radius: var(--nordic-radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--nordic-font-size-xl);
+    color: var(--nordic-info);
+    background: rgba(90, 138, 196, 0.05);
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* ========================================
+   6. Responsive - 響應式設計
+   ======================================== */
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 180px;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-preview {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .sidebar-left,
+    .sidebar-right {
+        display: none;
+    }
+
+    .toolbar-btn .btn-text {
+        display: none;
+    }
+
+    .app-title .app-icon+span {
+        display: none;
+    }
+}
+
+/* ========================================
+   7. Custom Scrollbar
+   ======================================== */
+.nordic-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nordic-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nordic-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--nordic-border-color);
+    border-radius: var(--nordic-radius-full);
+}
+
+.nordic-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--nordic-text-muted);
+}
