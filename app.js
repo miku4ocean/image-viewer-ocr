@@ -994,20 +994,49 @@ function saveImage() {
     const hour = String(now.getHours()).padStart(2, '0');
     const minute = String(now.getMinutes()).padStart(2, '0');
     const timestamp = `${year}${month}${day}${hour}${minute}`;
-    const downloadName = `images_${timestamp}.${extension}`;
+    const defaultName = `images_${timestamp}.${extension}`;
 
-    outputCanvas.toBlob((blob) => {
+    outputCanvas.toBlob(async (blob) => {
+        // 嘗試使用 File System Access API（讓用戶選擇儲存位置）
+        if ('showSaveFilePicker' in window) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: defaultName,
+                    types: [{
+                        description: '圖片檔案',
+                        accept: {
+                            [mimeType]: [`.${extension}`]
+                        }
+                    }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+
+                hideLoading();
+                showToast(`已儲存為 ${handle.name}`);
+                return;
+            } catch (err) {
+                // 用戶取消或不支援，fallback 到傳統下載
+                if (err.name === 'AbortError') {
+                    hideLoading();
+                    return;
+                }
+            }
+        }
+
+        // Fallback：傳統下載方式
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = downloadName;
+        a.download = defaultName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         hideLoading();
-        showToast(`已儲存為 ${downloadName}`);
+        showToast(`已儲存為 ${defaultName}`);
     }, mimeType, quality);
 }
 
@@ -1214,10 +1243,10 @@ function initCropDragHandlers() {
             else if (classes.includes('ne')) dragType = 'ne';
             else if (classes.includes('sw')) dragType = 'sw';
             else if (classes.includes('se')) dragType = 'se';
-            else if (classes.includes('n')) dragType = 'n';
-            else if (classes.includes('s')) dragType = 's';
-            else if (classes.includes('e')) dragType = 'e';
-            else if (classes.includes('w')) dragType = 'w';
+            else if (classes.includes('-n')) dragType = 'n';
+            else if (classes.includes('-s')) dragType = 's';
+            else if (classes.includes('-e')) dragType = 'e';
+            else if (classes.includes('-w')) dragType = 'w';
         } else {
             dragType = 'move';
         }
@@ -1234,13 +1263,14 @@ function initCropDragHandlers() {
 
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        const canvas = elements.imageCanvas;
+        const canvasWidth = elements.imageCanvas.width;
+        const canvasHeight = elements.imageCanvas.height;
         const minSize = 30;
 
         switch (dragType) {
             case 'move':
-                state.cropRect.x = Math.max(0, Math.min(canvas.width - state.cropRect.width, startRect.x + dx));
-                state.cropRect.y = Math.max(0, Math.min(canvas.height - state.cropRect.height, startRect.y + dy));
+                state.cropRect.x = Math.max(0, Math.min(canvasWidth - state.cropRect.width, startRect.x + dx));
+                state.cropRect.y = Math.max(0, Math.min(canvasHeight - state.cropRect.height, startRect.y + dy));
                 break;
             case 'nw':
                 {
@@ -1254,7 +1284,7 @@ function initCropDragHandlers() {
                 break;
             case 'ne':
                 {
-                    const newWidth = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
+                    const newWidth = Math.max(minSize, Math.min(canvasWidth - startRect.x, startRect.width + dx));
                     const newY = Math.max(0, Math.min(startRect.y + startRect.height - minSize, startRect.y + dy));
                     state.cropRect.width = newWidth;
                     state.cropRect.height = startRect.height + (startRect.y - newY);
@@ -1264,15 +1294,22 @@ function initCropDragHandlers() {
             case 'sw':
                 {
                     const newX = Math.max(0, Math.min(startRect.x + startRect.width - minSize, startRect.x + dx));
-                    const newHeight = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                    // 修正：使用 startRect.y 作為起點計算最大高度
+                    const maxHeight = canvasHeight - startRect.y;
+                    const newHeight = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
                     state.cropRect.width = startRect.width + (startRect.x - newX);
                     state.cropRect.height = newHeight;
                     state.cropRect.x = newX;
                 }
                 break;
             case 'se':
-                state.cropRect.width = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
-                state.cropRect.height = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                {
+                    // 修正：使用 startRect.x 和 startRect.y 作為起點計算最大尺寸
+                    const maxWidth = canvasWidth - startRect.x;
+                    const maxHeight = canvasHeight - startRect.y;
+                    state.cropRect.width = Math.max(minSize, Math.min(maxWidth, startRect.width + dx));
+                    state.cropRect.height = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
+                }
                 break;
             case 'n':
                 {
@@ -1282,10 +1319,17 @@ function initCropDragHandlers() {
                 }
                 break;
             case 's':
-                state.cropRect.height = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                {
+                    // 修正：使用 startRect.y 作為起點計算最大高度
+                    const maxHeight = canvasHeight - startRect.y;
+                    state.cropRect.height = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
+                }
                 break;
             case 'e':
-                state.cropRect.width = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
+                {
+                    const maxWidth = canvasWidth - startRect.x;
+                    state.cropRect.width = Math.max(minSize, Math.min(maxWidth, startRect.width + dx));
+                }
                 break;
             case 'w':
                 {
@@ -1309,14 +1353,19 @@ function initCropDragHandlers() {
 function initOCRRegionHandlers() {
     let isDrawing = false;
     let startX, startY;
+    let canvasOffsetX, canvasOffsetY;
 
     const viewport = elements.imageViewport;
 
     viewport.addEventListener('mousedown', (e) => {
         if (!state.isSelectingOCRRegion) return;
 
-        const rect = viewport.getBoundingClientRect();
         const canvasRect = elements.imageCanvas.getBoundingClientRect();
+        const viewportRect = viewport.getBoundingClientRect();
+
+        // 計算 canvas 相對於 viewport 的偏移
+        canvasOffsetX = canvasRect.left - viewportRect.left;
+        canvasOffsetY = canvasRect.top - viewportRect.top;
 
         // 檢查是否在圖片範圍內
         if (e.clientX < canvasRect.left || e.clientX > canvasRect.right ||
@@ -1325,13 +1374,14 @@ function initOCRRegionHandlers() {
         }
 
         isDrawing = true;
+        // 相對於 canvas 的座標
         startX = e.clientX - canvasRect.left;
         startY = e.clientY - canvasRect.top;
 
-        // 初始化選擇框
+        // 初始化選擇框（相對於 viewport，加上 canvas 偏移）
         if (elements.ocrRegionBox) {
-            elements.ocrRegionBox.style.left = startX + 'px';
-            elements.ocrRegionBox.style.top = startY + 'px';
+            elements.ocrRegionBox.style.left = (startX + canvasOffsetX) + 'px';
+            elements.ocrRegionBox.style.top = (startY + canvasOffsetY) + 'px';
             elements.ocrRegionBox.style.width = '0px';
             elements.ocrRegionBox.style.height = '0px';
             elements.ocrRegionBox.style.display = 'block';
@@ -1344,21 +1394,26 @@ function initOCRRegionHandlers() {
         if (!isDrawing) return;
 
         const canvasRect = elements.imageCanvas.getBoundingClientRect();
+
+        // 當前滑鼠相對於 canvas 的座標
         const currentX = Math.max(0, Math.min(elements.imageCanvas.width, e.clientX - canvasRect.left));
         const currentY = Math.max(0, Math.min(elements.imageCanvas.height, e.clientY - canvasRect.top));
 
+        // 計算選取區域（相對於 canvas）
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
         const width = Math.abs(currentX - startX);
         const height = Math.abs(currentY - startY);
 
+        // 更新選擇框位置（相對於 viewport，加上 canvas 偏移）
         if (elements.ocrRegionBox) {
-            elements.ocrRegionBox.style.left = x + 'px';
-            elements.ocrRegionBox.style.top = y + 'px';
+            elements.ocrRegionBox.style.left = (x + canvasOffsetX) + 'px';
+            elements.ocrRegionBox.style.top = (y + canvasOffsetY) + 'px';
             elements.ocrRegionBox.style.width = width + 'px';
             elements.ocrRegionBox.style.height = height + 'px';
         }
 
+        // 儲存相對於 canvas 的座標（用於 OCR）
         state.ocrRegion = { x, y, width, height };
     });
 
