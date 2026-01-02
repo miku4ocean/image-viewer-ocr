@@ -217,6 +217,32 @@ body {
     filter: contrast(80%) brightness(110%) saturate(80%);
 }
 
+/* 新增濾鏡預覽 */
+.filter-preview.vivid {
+    filter: saturate(180%) contrast(110%);
+}
+
+.filter-preview.blur {
+    filter: blur(2px);
+}
+
+.filter-preview.sharpen {
+    filter: contrast(120%) brightness(105%);
+}
+
+.filter-preview.vignette {
+    filter: brightness(95%) contrast(105%);
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.filter-preview.invert {
+    filter: invert(100%);
+}
+
+.filter-preview.sketch {
+    filter: grayscale(100%) contrast(150%) brightness(120%);
+}
+
 .filter-item span {
     font-size: var(--nordic-font-size-xs);
     color: var(--nordic-text-secondary);

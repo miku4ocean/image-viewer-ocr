@@ -380,7 +380,14 @@ const filters = {
     cool: 'saturate(80%) hue-rotate(20deg)',
     vintage: 'sepia(40%) contrast(90%) brightness(95%)',
     dramatic: 'contrast(130%) saturate(120%)',
-    fade: 'contrast(80%) brightness(110%) saturate(80%)'
+    fade: 'contrast(80%) brightness(110%) saturate(80%)',
+    // 新增濾鏡
+    vivid: 'saturate(180%) contrast(110%)',
+    blur: 'blur(2px)',
+    sharpen: 'contrast(120%) brightness(105%)',
+    vignette: 'brightness(95%) contrast(105%)',
+    invert: 'invert(100%)',
+    sketch: 'grayscale(100%) contrast(150%) brightness(120%)'
 };
 
 function applyAllEffects() {
@@ -571,8 +578,15 @@ function startCrop() {
 
 function updateCropArea() {
     const crop = elements.cropArea;
-    crop.style.left = state.cropRect.x + 'px';
-    crop.style.top = state.cropRect.y + 'px';
+    const canvasRect = elements.imageCanvas.getBoundingClientRect();
+    const viewportRect = elements.imageViewport.getBoundingClientRect();
+
+    // 計算 canvas 相對於 viewport 的偏移
+    const offsetX = canvasRect.left - viewportRect.left;
+    const offsetY = canvasRect.top - viewportRect.top;
+
+    crop.style.left = (state.cropRect.x + offsetX) + 'px';
+    crop.style.top = (state.cropRect.y + offsetY) + 'px';
     crop.style.width = state.cropRect.width + 'px';
     crop.style.height = state.cropRect.height + 'px';
 }
@@ -847,28 +861,62 @@ function copyText() {
     });
 }
 
-function saveAsText() {
+async function saveAsText() {
     const text = elements.ocrTextOutput.value;
     if (!text) {
         showToast('沒有可儲存的文字', 'warning');
         return;
     }
 
+    // 產生檔名：text_yyyyMMddHHmmss.txt
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const second = String(now.getSeconds()).padStart(2, '0');
+    const timestamp = `${year}${month}${day}${hour}${minute}${second}`;
+    const defaultName = `text_${timestamp}.txt`;
+
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+
+    // 嘗試使用 File System Access API
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: defaultName,
+                types: [{
+                    description: '文字檔案',
+                    accept: {
+                        'text/plain': ['.txt']
+                    }
+                }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            showToast(`已儲存為 ${handle.name}`);
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                return;
+            }
+        }
+    }
+
+    // Fallback
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-
-    // 確保檔名正確
-    const baseName = state.fileName.replace(/\.[^.]+$/, '') || 'ocr_result';
-    a.download = baseName + '_ocr.txt';
-
+    a.download = defaultName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showToast('已儲存文字檔');
+    showToast(`已儲存為 ${defaultName}`);
 }
 
 function closeOCRPanel() {
@@ -986,14 +1034,15 @@ function saveImage() {
 
     const quality = mimeType === 'image/jpeg' ? 0.92 : undefined;
 
-    // 產生檔名：images_yyyyMMddHHmm.extension
+    // 產生檔名：images_yyyyMMddHHmmss.extension
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const hour = String(now.getHours()).padStart(2, '0');
     const minute = String(now.getMinutes()).padStart(2, '0');
-    const timestamp = `${year}${month}${day}${hour}${minute}`;
+    const second = String(now.getSeconds()).padStart(2, '0');
+    const timestamp = `${year}${month}${day}${hour}${minute}${second}`;
     const defaultName = `images_${timestamp}.${extension}`;
 
     outputCanvas.toBlob(async (blob) => {
