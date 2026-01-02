@@ -1555,7 +1555,7 @@ function initCanvasNavigation() {
 
     // 畫布拖曳功能
     let isDragging = false;
-    let startX, startY, scrollLeft, scrollTop;
+    let lastX, lastY;
 
     elements.imageViewport.addEventListener('mousedown', (e) => {
         // 只在拖曳模式或按住空白鍵時啟用
@@ -1564,33 +1564,29 @@ function initCanvasNavigation() {
 
         isDragging = true;
         elements.imageViewport.classList.add('dragging');
-        startX = e.pageX - elements.imageViewport.offsetLeft;
-        startY = e.pageY - elements.imageViewport.offsetTop;
-        scrollLeft = elements.imageViewport.scrollLeft;
-        scrollTop = elements.imageViewport.scrollTop;
+        lastX = e.clientX;
+        lastY = e.clientY;
         e.preventDefault();
     });
 
-    elements.imageViewport.addEventListener('mousemove', (e) => {
+    document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
 
-        const x = e.pageX - elements.imageViewport.offsetLeft;
-        const y = e.pageY - elements.imageViewport.offsetTop;
-        const walkX = (x - startX) * 1.5;
-        const walkY = (y - startY) * 1.5;
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
 
-        elements.imageViewport.scrollLeft = scrollLeft - walkX;
-        elements.imageViewport.scrollTop = scrollTop - walkY;
+        elements.imageViewport.scrollLeft -= deltaX;
+        elements.imageViewport.scrollTop -= deltaY;
+
+        lastX = e.clientX;
+        lastY = e.clientY;
     });
 
-    elements.imageViewport.addEventListener('mouseup', () => {
-        isDragging = false;
-        elements.imageViewport.classList.remove('dragging');
-    });
-
-    elements.imageViewport.addEventListener('mouseleave', () => {
-        isDragging = false;
-        elements.imageViewport.classList.remove('dragging');
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            elements.imageViewport.classList.remove('dragging');
+        }
     });
 
     // 空白鍵臨時啟用拖曳模式

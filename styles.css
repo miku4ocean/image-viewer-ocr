@@ -403,14 +403,12 @@ body {
     position: relative;
 }
 
-/* Image Viewport - 有捲動條 */
+/* Image Viewport - 可四向滾動 */
 .image-viewport {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     position: relative;
-    overflow: auto;
+    overflow: scroll;
+    background: var(--nordic-bg-primary);
     padding: var(--nordic-spacing-lg);
 }
 
@@ -439,8 +437,9 @@ body {
     box-shadow: var(--nordic-shadow-lg);
     border-radius: var(--nordic-radius-sm);
     background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 20px 20px;
-    /* 移除 max 限制，讓放大時可以滾動 */
-    flex-shrink: 0;
+    display: block;
+    /* 當圖片小於 viewport 時置中 */
+    margin: auto;
 }
 
 /* Zoom Controls - 縮放控制（移到右上角） */
