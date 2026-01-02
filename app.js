@@ -13,6 +13,12 @@ const state = {
     imageWidth: 0,
     imageHeight: 0,
     fileName: '',
+    fileExtension: 'png',
+
+    // 歷史記錄（用於上一步/下一步）
+    history: [],
+    historyIndex: -1,
+    maxHistory: 20,
 
     // 編輯狀態
     zoom: 1,
@@ -35,6 +41,8 @@ const state = {
 
     // OCR 狀態
     isOCRMode: false,
+    isSelectingOCRRegion: false,
+    ocrRegion: null,
     ocrWords: [],
     selectedText: '',
 
@@ -62,6 +70,10 @@ const elements = {
     btnOcr: document.getElementById('btn-ocr'),
     btnSelectFile: document.getElementById('btn-select-file'),
     fileInput: document.getElementById('file-input'),
+
+    // 歷史記錄按鈕
+    btnUndo: document.getElementById('btn-undo'),
+    btnRedo: document.getElementById('btn-redo'),
 
     // 濾鏡
     filterGrid: document.getElementById('filter-grid'),
@@ -110,6 +122,10 @@ const elements = {
     btnCopyText: document.getElementById('btn-copy-text'),
     btnSaveText: document.getElementById('btn-save-text'),
     btnCloseOcrPanel: document.getElementById('btn-close-ocr-panel'),
+
+    // OCR 區域選擇
+    ocrRegionOverlay: document.getElementById('ocr-region-overlay'),
+    ocrRegionBox: document.getElementById('ocr-region-box'),
 
     // 尺寸調整對話框
     resizeModal: document.getElementById('resize-modal'),
@@ -179,13 +195,94 @@ function updateToolbarState(enabled) {
     elements.btnCrop.disabled = !enabled;
     elements.btnResize.disabled = !enabled;
     elements.btnOcr.disabled = !enabled;
+    if (elements.btnUndo) elements.btnUndo.disabled = !enabled || state.historyIndex <= 0;
+    if (elements.btnRedo) elements.btnRedo.disabled = !enabled || state.historyIndex >= state.history.length - 1;
+}
+
+// 取得檔案副檔名
+function getFileExtension(filename) {
+    const match = filename.match(/\.([^.]+)$/);
+    if (match) {
+        const ext = match[1].toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+            return ext;
+        }
+    }
+    return 'png';
 }
 
 // ========================================
-// 4. 圖片載入和顯示
+// 4. 歷史記錄管理
 // ========================================
 
-// 載入圖片檔案
+function saveToHistory() {
+    // 如果不在歷史末端，移除後面的記錄
+    if (state.historyIndex < state.history.length - 1) {
+        state.history = state.history.slice(0, state.historyIndex + 1);
+    }
+
+    // 儲存當前狀態
+    const canvas = document.createElement('canvas');
+    canvas.width = state.imageWidth;
+    canvas.height = state.imageHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(state.originalImage, 0, 0);
+
+    state.history.push({
+        imageData: canvas.toDataURL(),
+        width: state.imageWidth,
+        height: state.imageHeight
+    });
+
+    // 限制歷史記錄數量
+    if (state.history.length > state.maxHistory) {
+        state.history.shift();
+    } else {
+        state.historyIndex++;
+    }
+
+    updateToolbarState(true);
+}
+
+function undo() {
+    if (state.historyIndex <= 0) return;
+
+    state.historyIndex--;
+    restoreFromHistory(state.historyIndex);
+    showToast('已還原');
+}
+
+function redo() {
+    if (state.historyIndex >= state.history.length - 1) return;
+
+    state.historyIndex++;
+    restoreFromHistory(state.historyIndex);
+    showToast('已重做');
+}
+
+function restoreFromHistory(index) {
+    const record = state.history[index];
+    if (!record) return;
+
+    const img = new Image();
+    img.onload = () => {
+        state.originalImage = img;
+        state.imageWidth = record.width;
+        state.imageHeight = record.height;
+        state.aspectRatio = record.width / record.height;
+
+        fitImageToViewport();
+        applyAllEffects();
+        updateImageInfo();
+        updateToolbarState(true);
+    };
+    img.src = record.imageData;
+}
+
+// ========================================
+// 5. 圖片載入和顯示
+// ========================================
+
 function loadImage(file) {
     if (!file || !file.type.startsWith('image/')) {
         showToast('請選擇有效的圖片檔案', 'error');
@@ -203,7 +300,13 @@ function loadImage(file) {
             state.imageWidth = img.width;
             state.imageHeight = img.height;
             state.fileName = file.name;
+            state.fileExtension = getFileExtension(file.name);
             state.aspectRatio = img.width / img.height;
+
+            // 清空並初始化歷史記錄
+            state.history = [];
+            state.historyIndex = -1;
+            saveToHistory();
 
             // 重置調整值
             resetAdjustments();
@@ -233,7 +336,6 @@ function loadImage(file) {
     reader.readAsDataURL(file);
 }
 
-// 調整圖片大小以適合視窗
 function fitImageToViewport() {
     if (!state.originalImage) return;
 
@@ -244,7 +346,7 @@ function fitImageToViewport() {
     const scale = Math.min(
         maxWidth / state.imageWidth,
         maxHeight / state.imageHeight,
-        1 // 不放大超過 100%
+        1
     );
 
     state.zoom = scale;
@@ -252,12 +354,10 @@ function fitImageToViewport() {
     renderCanvas();
 }
 
-// 更新縮放顯示
 function updateZoomDisplay() {
     elements.zoomLevel.textContent = `${Math.round(state.zoom * 100)}%`;
 }
 
-// 繪製 Canvas
 function renderCanvas() {
     const width = Math.round(state.imageWidth * state.zoom);
     const height = Math.round(state.imageHeight * state.zoom);
@@ -269,10 +369,9 @@ function renderCanvas() {
 }
 
 // ========================================
-// 5. 影像處理效果
+// 6. 影像處理效果
 // ========================================
 
-// 濾鏡定義
 const filters = {
     none: '',
     grayscale: 'grayscale(100%)',
@@ -284,18 +383,14 @@ const filters = {
     fade: 'contrast(80%) brightness(110%) saturate(80%)'
 };
 
-// 套用所有效果
 function applyAllEffects() {
     if (!state.originalImage) return;
 
-    // 繪製原始圖片
     renderCanvas();
 
-    // 取得像素資料
     const imageData = ctx.getImageData(0, 0, elements.imageCanvas.width, elements.imageCanvas.height);
     const data = imageData.data;
 
-    // 套用調整
     for (let i = 0; i < data.length; i += 4) {
         let r = data[i];
         let g = data[i + 1];
@@ -317,7 +412,7 @@ function applyAllEffects() {
             b = (b - 128) * con + 128;
         }
 
-        // 亮部/陰影（簡化版）
+        // 亮部/陰影
         const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
         if (state.adjustments.highlights !== 0 && luminance > 128) {
             const factor = (luminance - 128) / 127;
@@ -367,25 +462,20 @@ function applyAllEffects() {
             b = b * (1 - sep) + tb * sep;
         }
 
-        // 限制範圍
         data[i] = Math.max(0, Math.min(255, r));
         data[i + 1] = Math.max(0, Math.min(255, g));
         data[i + 2] = Math.max(0, Math.min(255, b));
     }
 
     ctx.putImageData(imageData, 0, 0);
-
-    // 套用 CSS 濾鏡
     elements.imageCanvas.style.filter = filters[state.activeFilter] || '';
 }
 
-// 自動色階
 function autoAdjust() {
     if (!state.originalImage) return;
 
     showLoading('自動調整中...');
 
-    // 分析圖片直方圖
     renderCanvas();
     const imageData = ctx.getImageData(0, 0, elements.imageCanvas.width, elements.imageCanvas.height);
     const data = imageData.data;
@@ -403,21 +493,14 @@ function autoAdjust() {
         totalB += data[i + 2];
     }
 
-    // 計算建議調整值
-    const avgR = totalR / pixelCount;
-    const avgG = totalG / pixelCount;
-    const avgB = totalB / pixelCount;
-    const avgL = (avgR + avgG + avgB) / 3;
+    const avgL = (totalR + totalG + totalB) / (pixelCount * 3);
 
-    // 自動調整曝光和對比
     state.adjustments.exposure = Math.round((128 - avgL) / 2);
     state.adjustments.contrast = Math.round((255 / (maxL - minL + 1) - 1) * 30);
 
-    // 限制調整範圍
     state.adjustments.exposure = Math.max(-50, Math.min(50, state.adjustments.exposure));
     state.adjustments.contrast = Math.max(-30, Math.min(30, state.adjustments.contrast));
 
-    // 更新 UI
     updateSliderValues();
     applyAllEffects();
 
@@ -425,7 +508,6 @@ function autoAdjust() {
     showToast('已套用自動色階');
 }
 
-// 重置調整
 function resetAdjustments() {
     state.adjustments = {
         exposure: 0,
@@ -445,7 +527,6 @@ function resetAdjustments() {
     applyAllEffects();
 }
 
-// 更新滑桿值顯示
 function updateSliderValues() {
     Object.keys(state.adjustments).forEach(key => {
         if (elements.sliders[key]) {
@@ -457,7 +538,6 @@ function updateSliderValues() {
     });
 }
 
-// 更新濾鏡選擇狀態
 function updateFilterSelection() {
     document.querySelectorAll('.filter-item').forEach(item => {
         item.classList.toggle('active', item.dataset.filter === state.activeFilter);
@@ -465,7 +545,7 @@ function updateFilterSelection() {
 }
 
 // ========================================
-// 6. 裁切功能
+// 7. 裁切功能（改進版）
 // ========================================
 
 function startCrop() {
@@ -475,7 +555,7 @@ function startCrop() {
     elements.btnCrop.classList.add('active');
     elements.cropOverlay.classList.remove('nordic-hidden');
 
-    // 初始化裁切區域（預設為圖片中心 80%）
+    // 初始化裁切區域
     const canvas = elements.imageCanvas;
     const margin = 0.1;
     state.cropRect = {
@@ -486,7 +566,7 @@ function startCrop() {
     };
 
     updateCropArea();
-    updateStatus('拖曳調整裁切區域，按 Enter 確認或 Esc 取消');
+    updateStatus('拖曳調整裁切區域，按 Enter 確認 / Esc 取消 / R 重置');
 }
 
 function updateCropArea() {
@@ -497,12 +577,26 @@ function updateCropArea() {
     crop.style.height = state.cropRect.height + 'px';
 }
 
+function resetCropArea() {
+    if (!state.isCropping) return;
+
+    const canvas = elements.imageCanvas;
+    const margin = 0.1;
+    state.cropRect = {
+        x: canvas.width * margin,
+        y: canvas.height * margin,
+        width: canvas.width * (1 - 2 * margin),
+        height: canvas.height * (1 - 2 * margin)
+    };
+    updateCropArea();
+    showToast('裁切區域已重置');
+}
+
 function applyCrop() {
     if (!state.isCropping) return;
 
     showLoading('裁切中...');
 
-    // 計算實際裁切區域（對應原始圖片尺寸）
     const scaleX = state.imageWidth / elements.imageCanvas.width;
     const scaleY = state.imageHeight / elements.imageCanvas.height;
 
@@ -511,20 +605,21 @@ function applyCrop() {
     const cropW = Math.round(state.cropRect.width * scaleX);
     const cropH = Math.round(state.cropRect.height * scaleY);
 
-    // 創建新的裁切後圖片
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = cropW;
     tempCanvas.height = cropH;
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.drawImage(state.originalImage, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-    // 更新狀態
     const img = new Image();
     img.onload = () => {
         state.originalImage = img;
         state.imageWidth = cropW;
         state.imageHeight = cropH;
         state.aspectRatio = cropW / cropH;
+
+        // 儲存到歷史記錄
+        saveToHistory();
 
         cancelCrop();
         fitImageToViewport();
@@ -544,7 +639,7 @@ function cancelCrop() {
 }
 
 // ========================================
-// 7. 尺寸調整
+// 8. 尺寸調整
 // ========================================
 
 function openResizeModal() {
@@ -572,7 +667,6 @@ function applyResize() {
 
     showLoading('調整尺寸中...');
 
-    // 創建新尺寸的圖片
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = newWidth;
     tempCanvas.height = newHeight;
@@ -586,6 +680,9 @@ function applyResize() {
         state.imageHeight = newHeight;
         state.aspectRatio = newWidth / newHeight;
 
+        // 儲存到歷史記錄
+        saveToHistory();
+
         closeResizeModal();
         fitImageToViewport();
         applyAllEffects();
@@ -597,20 +694,54 @@ function applyResize() {
 }
 
 // ========================================
-// 8. OCR 文字辨識
+// 9. OCR 文字辨識（改進版 - 支援區域選擇）
 // ========================================
 
-async function startOCR() {
+function startOCRSelection() {
     if (!state.originalImage) return;
 
+    state.isSelectingOCRRegion = true;
+    state.ocrRegion = null;
+
+    // 顯示 OCR 區域選擇覆蓋層
+    if (elements.ocrRegionOverlay) {
+        elements.ocrRegionOverlay.classList.remove('nordic-hidden');
+    }
+
+    updateStatus('請在圖片上框選要辨識的區域，或按 Enter 辨識整張圖片');
+    showToast('請框選要辨識的文字區域', 'info');
+}
+
+async function performOCR(region = null) {
     showLoading('正在辨識文字...');
     updateStatus('OCR 處理中...');
 
     try {
-        // 使用 Tesseract.js 進行 OCR
+        let sourceCanvas;
+
+        if (region) {
+            // 只辨識選取區域
+            const scaleX = state.imageWidth / elements.imageCanvas.width;
+            const scaleY = state.imageHeight / elements.imageCanvas.height;
+
+            const regionX = Math.round(region.x * scaleX);
+            const regionY = Math.round(region.y * scaleY);
+            const regionW = Math.round(region.width * scaleX);
+            const regionH = Math.round(region.height * scaleY);
+
+            sourceCanvas = document.createElement('canvas');
+            sourceCanvas.width = regionW;
+            sourceCanvas.height = regionH;
+            const sourceCtx = sourceCanvas.getContext('2d');
+            sourceCtx.drawImage(state.originalImage, regionX, regionY, regionW, regionH, 0, 0, regionW, regionH);
+        } else {
+            // 辨識整張圖片
+            sourceCanvas = elements.imageCanvas;
+        }
+
         const result = await Tesseract.recognize(
-            elements.imageCanvas,
-            'chi_tra+eng', // 繁體中文 + 英文
+            sourceCanvas,
+            'chi_tra+eng',
             {
                 logger: (m) => {
                     if (m.status === 'recognizing text') {
@@ -624,13 +755,13 @@ async function startOCR() {
         state.isOCRMode = true;
         state.ocrWords = result.data.words || [];
 
-        // 顯示辨識結果
         const text = result.data.text.trim();
         elements.ocrTextOutput.value = text;
         elements.ocrResultPanel.classList.remove('nordic-hidden');
 
-        // 在圖片上標記文字區域
-        renderOCROverlay();
+        if (!region) {
+            renderOCROverlay();
+        }
 
         hideLoading();
         updateStatus(`辨識完成，共 ${state.ocrWords.length} 個字詞`);
@@ -649,7 +780,11 @@ async function startOCR() {
     }
 }
 
-// 繪製 OCR 文字覆蓋層
+function startOCR() {
+    if (!state.originalImage) return;
+    startOCRSelection();
+}
+
 function renderOCROverlay() {
     const layer = elements.ocrTextLayer;
     layer.innerHTML = '';
@@ -657,7 +792,6 @@ function renderOCROverlay() {
     const scaleX = elements.imageCanvas.width / state.imageWidth;
     const scaleY = elements.imageCanvas.height / state.imageHeight;
 
-    // 取得 canvas 在 viewport 中的位置
     const canvasRect = elements.imageCanvas.getBoundingClientRect();
     const viewportRect = elements.imageViewport.getBoundingClientRect();
     const offsetX = canvasRect.left - viewportRect.left;
@@ -676,7 +810,6 @@ function renderOCROverlay() {
         div.style.height = ((word.bbox.y1 - word.bbox.y0) * scaleY) + 'px';
         div.title = word.text;
 
-        // 點擊選取文字
         div.addEventListener('click', () => toggleWordSelection(div, word));
 
         layer.appendChild(div);
@@ -685,25 +818,21 @@ function renderOCROverlay() {
     elements.ocrOverlay.classList.remove('nordic-hidden');
 }
 
-// 選取/取消選取文字
 function toggleWordSelection(div, word) {
     div.classList.toggle('selected');
     updateSelectedText();
 }
 
-// 更新已選取的文字
 function updateSelectedText() {
     const selectedWords = Array.from(document.querySelectorAll('.ocr-word.selected'))
         .map(el => el.dataset.text)
         .join(' ');
 
     if (selectedWords) {
-        // 如果有選取的文字，顯示在輸出區
         state.selectedText = selectedWords;
     }
 }
 
-// 複製文字
 function copyText() {
     const text = elements.ocrTextOutput.value;
     if (!text) {
@@ -718,7 +847,6 @@ function copyText() {
     });
 }
 
-// 儲存為 TXT
 function saveAsText() {
     const text = elements.ocrTextOutput.value;
     if (!text) {
@@ -730,7 +858,11 @@ function saveAsText() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = state.fileName.replace(/\.[^.]+$/, '') + '_ocr.txt';
+
+    // 確保檔名正確
+    const baseName = state.fileName.replace(/\.[^.]+$/, '') || 'ocr_result';
+    a.download = baseName + '_ocr.txt';
+
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -739,17 +871,26 @@ function saveAsText() {
     showToast('已儲存文字檔');
 }
 
-// 關閉 OCR 面板
 function closeOCRPanel() {
     state.isOCRMode = false;
+    state.isSelectingOCRRegion = false;
+    state.ocrRegion = null;
     elements.ocrResultPanel.classList.add('nordic-hidden');
     elements.ocrOverlay.classList.add('nordic-hidden');
     elements.ocrTextLayer.innerHTML = '';
+
+    if (elements.ocrRegionOverlay) {
+        elements.ocrRegionOverlay.classList.add('nordic-hidden');
+    }
+    if (elements.ocrRegionBox) {
+        elements.ocrRegionBox.style.display = 'none';
+    }
+
     updateStatus('就緒');
 }
 
 // ========================================
-// 9. 儲存圖片
+// 10. 儲存圖片（修復版）
 // ========================================
 
 function saveImage() {
@@ -757,41 +898,115 @@ function saveImage() {
 
     showLoading('儲存中...');
 
-    // 創建輸出用的 canvas（原始尺寸）
+    // 創建輸出用的 canvas
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = state.imageWidth;
     outputCanvas.height = state.imageHeight;
     const outputCtx = outputCanvas.getContext('2d');
 
-    // 繪製原始尺寸圖片
     outputCtx.drawImage(state.originalImage, 0, 0);
 
-    // 套用效果（重新在原始尺寸上處理）
+    // 套用調整效果到輸出
     const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
-    // ... 這裡可以加入完整的效果處理，類似 applyAllEffects
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+
+        // 曝光
+        if (state.adjustments.exposure !== 0) {
+            const exp = state.adjustments.exposure / 100 * 0.5 + 1;
+            r *= exp;
+            g *= exp;
+            b *= exp;
+        }
+
+        // 對比
+        if (state.adjustments.contrast !== 0) {
+            const con = (state.adjustments.contrast / 100) * 0.5 + 1;
+            r = (r - 128) * con + 128;
+            g = (g - 128) * con + 128;
+            b = (b - 128) * con + 128;
+        }
+
+        // 飽和度
+        if (state.adjustments.saturation !== 0) {
+            const sat = state.adjustments.saturation / 100 + 1;
+            const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            r = gray + sat * (r - gray);
+            g = gray + sat * (g - gray);
+            b = gray + sat * (b - gray);
+        }
+
+        // 色溫
+        if (state.adjustments.temperature !== 0) {
+            const temp = state.adjustments.temperature / 100 * 30;
+            r += temp;
+            b -= temp;
+        }
+
+        // 色調
+        if (state.adjustments.tint !== 0) {
+            const tint = state.adjustments.tint / 100 * 30;
+            g += tint;
+        }
+
+        // 褐色調
+        if (state.adjustments.sepia !== 0) {
+            const sep = state.adjustments.sepia / 100;
+            const tr = 0.393 * r + 0.769 * g + 0.189 * b;
+            const tg = 0.349 * r + 0.686 * g + 0.168 * b;
+            const tb = 0.272 * r + 0.534 * g + 0.131 * b;
+            r = r * (1 - sep) + tr * sep;
+            g = g * (1 - sep) + tg * sep;
+            b = b * (1 - sep) + tb * sep;
+        }
+
+        data[i] = Math.max(0, Math.min(255, r));
+        data[i + 1] = Math.max(0, Math.min(255, g));
+        data[i + 2] = Math.max(0, Math.min(255, b));
+    }
+
     outputCtx.putImageData(imageData, 0, 0);
 
-    // 下載
-    const format = state.fileName.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-    const quality = format === 'image/jpeg' ? 0.92 : undefined;
+    // 決定格式和檔名
+    let mimeType, extension;
+    if (state.fileExtension === 'jpg' || state.fileExtension === 'jpeg') {
+        mimeType = 'image/jpeg';
+        extension = 'jpg';
+    } else if (state.fileExtension === 'webp') {
+        mimeType = 'image/webp';
+        extension = 'webp';
+    } else {
+        mimeType = 'image/png';
+        extension = 'png';
+    }
+
+    const quality = mimeType === 'image/jpeg' ? 0.92 : undefined;
+
+    // 產生檔名
+    const baseName = state.fileName.replace(/\.[^.]+$/, '') || 'image';
+    const downloadName = `${baseName}_edited.${extension}`;
 
     outputCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = state.fileName.replace(/(\.[^.]+)$/, '_edited$1');
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         hideLoading();
-        showToast('圖片已儲存');
-    }, format, quality);
+        showToast(`已儲存為 ${downloadName}`);
+    }, mimeType, quality);
 }
 
 // ========================================
-// 10. 事件監聽器
+// 11. 事件監聽器
 // ========================================
 
 function initEventListeners() {
@@ -822,6 +1037,10 @@ function initEventListeners() {
 
     // 儲存
     elements.btnSave.addEventListener('click', saveImage);
+
+    // 歷史記錄
+    if (elements.btnUndo) elements.btnUndo.addEventListener('click', undo);
+    if (elements.btnRedo) elements.btnRedo.addEventListener('click', redo);
 
     // 裁切
     elements.btnCrop.addEventListener('click', () => {
@@ -905,12 +1124,31 @@ function initEventListeners() {
 
     // 鍵盤快捷鍵
     document.addEventListener('keydown', (e) => {
+        // 裁切模式
         if (state.isCropping) {
             if (e.key === 'Enter') {
                 applyCrop();
             } else if (e.key === 'Escape') {
                 cancelCrop();
+            } else if (e.key.toLowerCase() === 'r') {
+                resetCropArea();
             }
+            return;
+        }
+
+        // OCR 區域選擇模式
+        if (state.isSelectingOCRRegion) {
+            if (e.key === 'Enter') {
+                // 辨識整張圖片或選取區域
+                state.isSelectingOCRRegion = false;
+                if (elements.ocrRegionOverlay) {
+                    elements.ocrRegionOverlay.classList.add('nordic-hidden');
+                }
+                performOCR(state.ocrRegion);
+            } else if (e.key === 'Escape') {
+                closeOCRPanel();
+            }
+            return;
         }
 
         // Ctrl/Cmd + S 儲存
@@ -924,6 +1162,18 @@ function initEventListeners() {
             e.preventDefault();
             elements.fileInput.click();
         }
+
+        // Ctrl/Cmd + Z 還原
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            undo();
+        }
+
+        // Ctrl/Cmd + Shift + Z 重做
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+            e.preventDefault();
+            redo();
+        }
     });
 
     // 視窗大小變化
@@ -936,9 +1186,12 @@ function initEventListeners() {
 
     // 裁切區域拖曳
     initCropDragHandlers();
+
+    // OCR 區域選擇拖曳
+    initOCRRegionHandlers();
 }
 
-// 裁切區域拖曳處理
+// 裁切區域拖曳處理（改進版 - 支援四邊拖曳）
 function initCropDragHandlers() {
     let isDragging = false;
     let dragType = null;
@@ -946,11 +1199,23 @@ function initCropDragHandlers() {
     let startRect = {};
 
     elements.cropArea.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('crop-handle')) {
-            dragType = e.target.className.replace('crop-handle ', '');
+        const target = e.target;
+
+        if (target.classList.contains('crop-handle')) {
+            // 取得拖曳類型
+            const classes = target.className;
+            if (classes.includes('nw')) dragType = 'nw';
+            else if (classes.includes('ne')) dragType = 'ne';
+            else if (classes.includes('sw')) dragType = 'sw';
+            else if (classes.includes('se')) dragType = 'se';
+            else if (classes.includes('n')) dragType = 'n';
+            else if (classes.includes('s')) dragType = 's';
+            else if (classes.includes('e')) dragType = 'e';
+            else if (classes.includes('w')) dragType = 'w';
         } else {
             dragType = 'move';
         }
+
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -964,30 +1229,65 @@ function initCropDragHandlers() {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         const canvas = elements.imageCanvas;
+        const minSize = 30;
 
-        if (dragType === 'move') {
-            state.cropRect.x = Math.max(0, Math.min(canvas.width - state.cropRect.width, startRect.x + dx));
-            state.cropRect.y = Math.max(0, Math.min(canvas.height - state.cropRect.height, startRect.y + dy));
-        } else if (dragType.includes('se')) {
-            state.cropRect.width = Math.max(50, Math.min(canvas.width - startRect.x, startRect.width + dx));
-            state.cropRect.height = Math.max(50, Math.min(canvas.height - startRect.y, startRect.height + dy));
-        } else if (dragType.includes('sw')) {
-            const newX = Math.max(0, startRect.x + dx);
-            state.cropRect.width = Math.max(50, startRect.width - (newX - startRect.x));
-            state.cropRect.x = newX;
-            state.cropRect.height = Math.max(50, Math.min(canvas.height - startRect.y, startRect.height + dy));
-        } else if (dragType.includes('ne')) {
-            state.cropRect.width = Math.max(50, Math.min(canvas.width - startRect.x, startRect.width + dx));
-            const newY = Math.max(0, startRect.y + dy);
-            state.cropRect.height = Math.max(50, startRect.height - (newY - startRect.y));
-            state.cropRect.y = newY;
-        } else if (dragType.includes('nw')) {
-            const newX = Math.max(0, startRect.x + dx);
-            const newY = Math.max(0, startRect.y + dy);
-            state.cropRect.width = Math.max(50, startRect.width - (newX - startRect.x));
-            state.cropRect.height = Math.max(50, startRect.height - (newY - startRect.y));
-            state.cropRect.x = newX;
-            state.cropRect.y = newY;
+        switch (dragType) {
+            case 'move':
+                state.cropRect.x = Math.max(0, Math.min(canvas.width - state.cropRect.width, startRect.x + dx));
+                state.cropRect.y = Math.max(0, Math.min(canvas.height - state.cropRect.height, startRect.y + dy));
+                break;
+            case 'nw':
+                {
+                    const newX = Math.max(0, Math.min(startRect.x + startRect.width - minSize, startRect.x + dx));
+                    const newY = Math.max(0, Math.min(startRect.y + startRect.height - minSize, startRect.y + dy));
+                    state.cropRect.width = startRect.width + (startRect.x - newX);
+                    state.cropRect.height = startRect.height + (startRect.y - newY);
+                    state.cropRect.x = newX;
+                    state.cropRect.y = newY;
+                }
+                break;
+            case 'ne':
+                {
+                    const newWidth = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
+                    const newY = Math.max(0, Math.min(startRect.y + startRect.height - minSize, startRect.y + dy));
+                    state.cropRect.width = newWidth;
+                    state.cropRect.height = startRect.height + (startRect.y - newY);
+                    state.cropRect.y = newY;
+                }
+                break;
+            case 'sw':
+                {
+                    const newX = Math.max(0, Math.min(startRect.x + startRect.width - minSize, startRect.x + dx));
+                    const newHeight = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                    state.cropRect.width = startRect.width + (startRect.x - newX);
+                    state.cropRect.height = newHeight;
+                    state.cropRect.x = newX;
+                }
+                break;
+            case 'se':
+                state.cropRect.width = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
+                state.cropRect.height = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                break;
+            case 'n':
+                {
+                    const newY = Math.max(0, Math.min(startRect.y + startRect.height - minSize, startRect.y + dy));
+                    state.cropRect.height = startRect.height + (startRect.y - newY);
+                    state.cropRect.y = newY;
+                }
+                break;
+            case 's':
+                state.cropRect.height = Math.max(minSize, Math.min(canvas.height - startRect.y, startRect.height + dy));
+                break;
+            case 'e':
+                state.cropRect.width = Math.max(minSize, Math.min(canvas.width - startRect.x, startRect.width + dx));
+                break;
+            case 'w':
+                {
+                    const newX = Math.max(0, Math.min(startRect.x + startRect.width - minSize, startRect.x + dx));
+                    state.cropRect.width = startRect.width + (startRect.x - newX);
+                    state.cropRect.x = newX;
+                }
+                break;
         }
 
         updateCropArea();
@@ -999,8 +1299,81 @@ function initCropDragHandlers() {
     });
 }
 
+// OCR 區域選擇處理
+function initOCRRegionHandlers() {
+    let isDrawing = false;
+    let startX, startY;
+
+    const viewport = elements.imageViewport;
+
+    viewport.addEventListener('mousedown', (e) => {
+        if (!state.isSelectingOCRRegion) return;
+
+        const rect = viewport.getBoundingClientRect();
+        const canvasRect = elements.imageCanvas.getBoundingClientRect();
+
+        // 檢查是否在圖片範圍內
+        if (e.clientX < canvasRect.left || e.clientX > canvasRect.right ||
+            e.clientY < canvasRect.top || e.clientY > canvasRect.bottom) {
+            return;
+        }
+
+        isDrawing = true;
+        startX = e.clientX - canvasRect.left;
+        startY = e.clientY - canvasRect.top;
+
+        // 初始化選擇框
+        if (elements.ocrRegionBox) {
+            elements.ocrRegionBox.style.left = startX + 'px';
+            elements.ocrRegionBox.style.top = startY + 'px';
+            elements.ocrRegionBox.style.width = '0px';
+            elements.ocrRegionBox.style.height = '0px';
+            elements.ocrRegionBox.style.display = 'block';
+        }
+
+        e.preventDefault();
+    });
+
+    viewport.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+
+        const canvasRect = elements.imageCanvas.getBoundingClientRect();
+        const currentX = Math.max(0, Math.min(elements.imageCanvas.width, e.clientX - canvasRect.left));
+        const currentY = Math.max(0, Math.min(elements.imageCanvas.height, e.clientY - canvasRect.top));
+
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const width = Math.abs(currentX - startX);
+        const height = Math.abs(currentY - startY);
+
+        if (elements.ocrRegionBox) {
+            elements.ocrRegionBox.style.left = x + 'px';
+            elements.ocrRegionBox.style.top = y + 'px';
+            elements.ocrRegionBox.style.width = width + 'px';
+            elements.ocrRegionBox.style.height = height + 'px';
+        }
+
+        state.ocrRegion = { x, y, width, height };
+    });
+
+    viewport.addEventListener('mouseup', () => {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        // 如果選取區域太小，提示用戶
+        if (state.ocrRegion && state.ocrRegion.width > 20 && state.ocrRegion.height > 20) {
+            showToast('區域已選取，按 Enter 開始辨識', 'info');
+        } else {
+            state.ocrRegion = null;
+            if (elements.ocrRegionBox) {
+                elements.ocrRegionBox.style.display = 'none';
+            }
+        }
+    });
+}
+
 // ========================================
-// 11. 初始化
+// 12. 初始化
 // ========================================
 
 function init() {
@@ -1009,5 +1382,4 @@ function init() {
     console.log('Image Viewer OCR initialized');
 }
 
-// 啟動應用
 document.addEventListener('DOMContentLoaded', init);

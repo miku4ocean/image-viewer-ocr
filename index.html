@@ -39,6 +39,15 @@
                         <span class="btn-text">儲存</span>
                     </button>
                     <div class="toolbar-divider"></div>
+                    <button class="nordic-btn nordic-btn-secondary toolbar-btn" id="btn-undo" title="上一步 (Ctrl+Z)"
+                        disabled>
+                        <span class="btn-icon">↩️</span>
+                    </button>
+                    <button class="nordic-btn nordic-btn-secondary toolbar-btn" id="btn-redo" title="下一步 (Ctrl+Shift+Z)"
+                        disabled>
+                        <span class="btn-icon">↪️</span>
+                    </button>
+                    <div class="toolbar-divider"></div>
                     <button class="nordic-btn nordic-btn-secondary toolbar-btn" id="btn-crop" title="裁切" disabled>
                         <span class="btn-icon">✂️</span>
                         <span class="btn-text">裁切</span>
@@ -129,16 +138,26 @@
                         <!-- 裁切遮罩層 -->
                         <div class="crop-overlay nordic-hidden" id="crop-overlay">
                             <div class="crop-area" id="crop-area">
+                                <!-- 四角手柄 -->
                                 <div class="crop-handle crop-handle-nw"></div>
                                 <div class="crop-handle crop-handle-ne"></div>
                                 <div class="crop-handle crop-handle-sw"></div>
                                 <div class="crop-handle crop-handle-se"></div>
+                                <!-- 四邊手柄 -->
+                                <div class="crop-handle crop-handle-n"></div>
+                                <div class="crop-handle crop-handle-s"></div>
+                                <div class="crop-handle crop-handle-e"></div>
+                                <div class="crop-handle crop-handle-w"></div>
                             </div>
                         </div>
                         <!-- OCR 文字選取層 -->
                         <div class="ocr-overlay nordic-hidden" id="ocr-overlay">
                             <div class="ocr-text-layer" id="ocr-text-layer"></div>
                             <div class="ocr-selection" id="ocr-selection"></div>
+                        </div>
+                        <!-- OCR 區域選擇層 -->
+                        <div class="ocr-region-overlay nordic-hidden" id="ocr-region-overlay">
+                            <div class="ocr-region-box" id="ocr-region-box"></div>
                         </div>
                     </div>
                     <!-- 縮放控制 -->
@@ -348,7 +367,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <!-- Application Scripts -->
-    <script src="app.js" type="module"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>
