@@ -401,15 +401,30 @@ body {
     display: flex;
     flex-direction: column;
     position: relative;
+    /* 這兩個屬性確保 flex 子元素不會撐開容器 */
+    min-height: 0;
+    height: 0;
 }
 
 /* Image Viewport - 可四向滾動 */
 .image-viewport {
-    flex: 1;
-    position: relative;
-    overflow: scroll;
+    /* 使用絕對定位填滿父容器，確保固定高度 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
     background: var(--nordic-bg-primary);
-    padding: var(--nordic-spacing-lg);
+}
+
+/* 內層容器 - 作為滾動內容的包裝器 */
+.image-viewport-inner {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 尺寸由 JavaScript 控制 */
 }
 
 /* 確保捲動條可見 */
@@ -434,12 +449,16 @@ body {
 }
 
 #image-canvas {
-    box-shadow: var(--nordic-shadow-lg);
+    /* 加強邊框 - 讓圖片邊界更明顯 */
+    border: 3px solid var(--nordic-accent-primary);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.2);
     border-radius: var(--nordic-radius-sm);
     background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 20px 20px;
     display: block;
-    /* 當圖片小於 viewport 時置中 */
-    margin: auto;
+    flex-shrink: 0;
 }
 
 /* Zoom Controls - 縮放控制（移到右上角） */
@@ -576,8 +595,9 @@ body {
 .crop-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
     z-index: 10;
+    /* 不設背景，讓 crop-area 的 box-shadow 來處理變暗效果 */
+    pointer-events: none;
 }
 
 .crop-area {
@@ -586,6 +606,8 @@ body {
     background: transparent;
     cursor: move;
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    /* 確保可以點擊和拖曳 */
 }
 
 .crop-handle {
@@ -666,6 +688,288 @@ body {
     background: rgba(90, 138, 196, 0.15);
     pointer-events: none;
     display: none;
+}
+
+/* ----------------------------------------
+   Mask Edit - 去背編輯
+   ---------------------------------------- */
+.mask-edit-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: auto;
+}
+
+.mask-edit-overlay canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.mask-edit-toolbar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: stretch;
+    /* 改為 stretch 讓所有元素等高 */
+    gap: var(--nordic-spacing-md);
+    padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--nordic-border-light);
+    border-radius: var(--nordic-radius-lg);
+    box-shadow: var(--nordic-shadow-lg);
+    z-index: 100;
+    cursor: default;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+.mask-edit-toolbar.dragging {
+    opacity: 0.9;
+    cursor: grabbing;
+}
+
+.mask-toolbar-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--nordic-spacing-xs) var(--nordic-spacing-sm);
+    color: var(--nordic-text-muted);
+    cursor: grab;
+    font-size: 14px;
+    letter-spacing: 2px;
+    border-right: 1px solid var(--nordic-border-light);
+}
+
+.mask-toolbar-drag-handle:active {
+    cursor: grabbing;
+}
+
+.mask-edit-tools-group {
+    display: flex;
+    align-items: stretch;
+    /* 改為 stretch */
+    gap: var(--nordic-spacing-md);
+}
+
+.mask-tools-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mask-tools-section .section-label {
+    font-size: 10px;
+    color: var(--nordic-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.mask-tools-row {
+    display: flex;
+    gap: var(--nordic-spacing-xs);
+}
+
+.mask-tools-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--nordic-border-light);
+}
+
+.mask-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    border: 2px solid var(--nordic-border-light);
+    border-radius: var(--nordic-radius-md);
+    background: var(--nordic-bg-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 60px;
+}
+
+.mask-tool-btn:hover {
+    border-color: var(--nordic-accent-primary);
+    background: var(--nordic-bg-hover);
+}
+
+.mask-tool-btn.active {
+    border-color: var(--nordic-accent-primary);
+    background: rgba(90, 138, 196, 0.15);
+}
+
+.mask-tool-btn .tool-icon {
+    font-size: 20px;
+}
+
+.mask-tool-btn .tool-label {
+    font-size: 10px;
+    color: var(--nordic-text-secondary);
+    white-space: nowrap;
+}
+
+.mask-tool-btn.active .tool-label {
+    color: var(--nordic-accent-primary);
+    font-weight: 600;
+}
+
+/* 自動選主體 - 藍色提示 */
+#mask-tool-auto-subject.active {
+    border-color: var(--nordic-info);
+    background: rgba(90, 138, 196, 0.2);
+}
+
+/* 選擇去背區 - 橙色提示 */
+#mask-tool-auto-bg.active {
+    border-color: #e67e22;
+    background: rgba(230, 126, 34, 0.15);
+}
+
+/* 恢復筆刷 - 綠色提示 */
+#mask-tool-restore.active {
+    border-color: var(--nordic-success);
+    background: rgba(94, 161, 118, 0.15);
+}
+
+#mask-tool-restore.active .tool-label {
+    color: var(--nordic-success);
+}
+
+/* 移除筆刷 - 紅色提示 */
+#mask-tool-erase.active {
+    border-color: var(--nordic-danger);
+    background: rgba(209, 105, 105, 0.15);
+}
+
+#mask-tool-erase.active .tool-label {
+    color: var(--nordic-danger);
+}
+
+/* 筆刷/容差滑桿群組 - 上下排列，垂直置中 */
+.mask-sliders-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    align-self: stretch;
+}
+
+/* 緊湊型滑桿 - 水平排列 */
+.mask-edit-slider-compact {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mask-edit-slider-compact label {
+    font-size: 10px;
+    color: var(--nordic-text-muted);
+    width: 28px;
+    text-align: right;
+}
+
+.mask-edit-slider-compact input[type="range"] {
+    width: 60px;
+    height: 4px;
+}
+
+.mask-edit-slider-compact span {
+    font-size: 10px;
+    color: var(--nordic-text-secondary);
+    width: 20px;
+}
+
+/* 舊版樣式保留 */
+.mask-edit-slider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.mask-edit-slider label {
+    font-size: 10px;
+    color: var(--nordic-text-muted);
+    text-transform: uppercase;
+}
+
+.mask-edit-slider input[type="range"] {
+    width: 80px;
+}
+
+.mask-edit-slider span {
+    font-size: 11px;
+    color: var(--nordic-text-secondary);
+}
+
+/* 歷史按鈕 - 垂直排列，垂直置中 */
+.mask-edit-history-vertical {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    /* 增加間距避免按錯 */
+    border-left: 1px solid var(--nordic-border-light);
+    padding-left: var(--nordic-spacing-sm);
+    align-self: stretch;
+}
+
+.mask-edit-history-vertical button {
+    padding: 6px 10px;
+    /* 加大按鈕 */
+    min-width: auto;
+    font-size: 14px;
+    /* 加大字體 */
+}
+
+.mask-edit-history-vertical button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* 舊版歷史按鈕 */
+.mask-edit-history {
+    display: flex;
+    gap: var(--nordic-spacing-xs);
+    align-items: center;
+}
+
+.mask-edit-history button {
+    padding: 6px 8px;
+    min-width: auto;
+}
+
+.mask-edit-history button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.mask-edit-actions {
+    display: flex;
+    gap: var(--nordic-spacing-xs);
+    border-left: 1px solid var(--nordic-border-light);
+    padding-left: var(--nordic-spacing-sm);
+}
+
+/* 超小按鈕樣式 */
+.nordic-btn-xs {
+    padding: 2px 6px;
+    font-size: 11px;
+}
+
+/* 去背編輯模式的游標樣式 */
+.mask-edit-overlay.restore-mode {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="%235EA176" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="%235EA176"/></svg>') 12 12, crosshair;
+}
+
+.mask-edit-overlay.erase-mode {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="%23D16969" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="%23D16969"/></svg>') 12 12, crosshair;
 }
 
 /* ----------------------------------------

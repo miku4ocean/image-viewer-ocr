@@ -57,6 +57,11 @@
                         <span class="btn-text">尺寸</span>
                     </button>
                     <div class="toolbar-divider"></div>
+                    <button class="nordic-btn nordic-btn-secondary toolbar-btn" id="btn-remove-bg" title="移除背景"
+                        disabled>
+                        <span class="btn-icon">🖼️</span>
+                        <span class="btn-text">去背</span>
+                    </button>
                     <button class="nordic-btn nordic-btn-primary toolbar-btn" id="btn-ocr" title="文字辨識" disabled>
                         <span class="btn-icon">📝</span>
                         <span class="btn-text">文字辨識</span>
@@ -217,7 +222,9 @@
                 <div class="editor-container nordic-hidden" id="editor-container">
                     <!-- 圖片畫布 -->
                     <div class="image-viewport" id="image-viewport">
-                        <canvas id="image-canvas"></canvas>
+                        <div class="image-viewport-inner" id="image-viewport-inner">
+                            <canvas id="image-canvas"></canvas>
+                        </div>
                         <!-- 裁切遮罩層 -->
                         <div class="crop-overlay nordic-hidden" id="crop-overlay">
                             <div class="crop-area" id="crop-area">
@@ -241,6 +248,99 @@
                         <!-- OCR 區域選擇層 -->
                         <div class="ocr-region-overlay nordic-hidden" id="ocr-region-overlay">
                             <div class="ocr-region-box" id="ocr-region-box"></div>
+                        </div>
+                        <!-- 去背編輯層 -->
+                        <div class="mask-edit-overlay nordic-hidden" id="mask-edit-overlay">
+                            <canvas id="mask-edit-canvas"></canvas>
+                        </div>
+                    </div>
+                    <!-- 去背編輯工具列（可拖曳） -->
+                    <div class="mask-edit-toolbar nordic-hidden" id="mask-edit-toolbar">
+                        <div class="mask-toolbar-drag-handle" id="mask-toolbar-drag">⋮⋮</div>
+                        <!-- 瀏覽模式（放在最前面） -->
+                        <div class="mask-tools-section">
+                            <span class="section-label">模式</span>
+                            <button class="mask-tool-btn" id="mask-tool-none" title="取消選取模式（可縮放/導覽圖片）">
+                                <span class="tool-icon">🔍</span>
+                                <span class="tool-label">瀏覽</span>
+                            </button>
+                        </div>
+                        <div class="mask-tools-divider"></div>
+                        <div class="mask-edit-tools-group">
+                            <div class="mask-tools-section">
+                                <span class="section-label">AI 選取</span>
+                                <div class="mask-tools-row">
+                                    <button class="mask-tool-btn" id="mask-tool-auto-subject" title="AI 自動選取主體">
+                                        <span class="tool-icon">🎯</span>
+                                        <span class="tool-label">自動選主體</span>
+                                    </button>
+                                    <button class="mask-tool-btn" id="mask-tool-auto-bg" title="AI 自動選取背景">
+                                        <span class="tool-icon">🔲</span>
+                                        <span class="tool-label">選擇去背區</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mask-tools-divider"></div>
+                            <div class="mask-tools-section">
+                                <span class="section-label">手動精修</span>
+                                <div class="mask-tools-row">
+                                    <button class="mask-tool-btn" id="mask-tool-restore" title="恢復筆刷（加入主體）">
+                                        <span class="tool-icon">🖌️</span>
+                                        <span class="tool-label">恢復</span>
+                                    </button>
+                                    <button class="mask-tool-btn" id="mask-tool-erase" title="移除筆刷（加入去背區）">
+                                        <span class="tool-icon">🧹</span>
+                                        <span class="tool-label">移除</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mask-tools-divider"></div>
+                            <div class="mask-tools-section">
+                                <span class="section-label">智慧選取</span>
+                                <div class="mask-tools-row">
+                                    <button class="mask-tool-btn" id="mask-tool-magic-restore"
+                                        title="魔術棒恢復（點擊選取相似顏色加入主體）">
+                                        <span class="tool-icon">✨</span>
+                                        <span class="tool-label">魔棒+</span>
+                                    </button>
+                                    <button class="mask-tool-btn" id="mask-tool-magic-erase" title="魔術棒移除（點擊選取相似顏色移除）">
+                                        <span class="tool-icon">🪄</span>
+                                        <span class="tool-label">魔棒-</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mask-tools-divider"></div>
+                            <!-- 筆刷/容差 上下排列 -->
+                            <div class="mask-sliders-group">
+                                <div class="mask-edit-slider-compact">
+                                    <label>筆刷</label>
+                                    <input type="range" id="mask-brush-size" min="5" max="100" value="30">
+                                    <span id="mask-brush-size-value">30</span>
+                                </div>
+                                <div class="mask-edit-slider-compact">
+                                    <label>容差</label>
+                                    <input type="range" id="mask-tolerance" min="5" max="100" value="32">
+                                    <span id="mask-tolerance-value">32</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 上一步/下一步 上下排列 -->
+                        <div class="mask-edit-history-vertical">
+                            <button class="nordic-btn nordic-btn-secondary nordic-btn-xs" id="mask-undo"
+                                title="復原 (Ctrl+Z)" disabled>
+                                <span>↩️</span>
+                            </button>
+                            <button class="nordic-btn nordic-btn-secondary nordic-btn-xs" id="mask-redo"
+                                title="重做 (Ctrl+Y)" disabled>
+                                <span>↪️</span>
+                            </button>
+                        </div>
+                        <div class="mask-edit-actions">
+                            <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="mask-edit-clear"
+                                title="清除所有去背效果">🗑️</button>
+                            <button class="nordic-btn nordic-btn-secondary nordic-btn-sm"
+                                id="mask-edit-cancel">取消</button>
+                            <button class="nordic-btn nordic-btn-primary nordic-btn-sm" id="mask-edit-apply">套用</button>
                         </div>
                     </div>
                 </div>
@@ -457,6 +557,9 @@
 
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- Background Removal 將在需要時動態載入 -->
+    <!-- @imgly/background-removal - 純前端 AI 去背，不上傳資料到伺服器 -->
 
     <!-- Application Scripts -->
     <script src="app.js"></script>
