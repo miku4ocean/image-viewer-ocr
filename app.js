@@ -833,6 +833,7 @@ function closeResizeModal() {
 function applyResize() {
     const newWidth = parseInt(elements.resizeWidth.value);
     const newHeight = parseInt(elements.resizeHeight.value);
+    const newDpi = parseInt(elements.resizeDpi.value) || 72;
 
     if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
         showToast('請輸入有效的尺寸', 'error');
@@ -853,6 +854,7 @@ function applyResize() {
         state.imageWidth = newWidth;
         state.imageHeight = newHeight;
         state.aspectRatio = newWidth / newHeight;
+        state.dpi = newDpi; // 更新 DPI 狀態
 
         // 儲存到歷史記錄
         saveToHistory();
@@ -862,7 +864,7 @@ function applyResize() {
         applyAllEffects();
         updateImageInfo();
         hideLoading();
-        showToast(`尺寸已調整為 ${newWidth} × ${newHeight}`);
+        showToast(`尺寸已調整為 ${newWidth} × ${newHeight} (${newDpi} DPI)`);
     };
     img.src = tempCanvas.toDataURL();
 }
