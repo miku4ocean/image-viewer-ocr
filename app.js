@@ -227,7 +227,11 @@ function updateStatus(text) {
 // 更新圖片資訊
 function updateImageInfo() {
     if (state.originalImage) {
-        elements.imageInfo.textContent = `${state.fileName} | ${state.imageWidth} × ${state.imageHeight} px`;
+        // 顯示 DPI（如果有設定）
+        const dpiText = state.dpi ? ` | ${state.dpi} DPI` : '';
+        // 估算檔案大小（假設未壓縮 RGB）
+        const estimatedSizeMB = ((state.imageWidth * state.imageHeight * 3) / (1024 * 1024)).toFixed(1);
+        elements.imageInfo.textContent = `${state.fileName} | ${state.imageWidth} × ${state.imageHeight} px${dpiText}`;
     } else {
         elements.imageInfo.textContent = '';
     }
@@ -725,38 +729,61 @@ function applyCrop() {
 
     showLoading('裁切中...');
 
-    const scaleX = state.imageWidth / elements.imageCanvas.width;
-    const scaleY = state.imageHeight / elements.imageCanvas.height;
+    // 使用 requestAnimationFrame 確保 UI 更新
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            try {
+                const scaleX = state.imageWidth / elements.imageCanvas.width;
+                const scaleY = state.imageHeight / elements.imageCanvas.height;
 
-    const cropX = Math.round(state.cropRect.x * scaleX);
-    const cropY = Math.round(state.cropRect.y * scaleY);
-    const cropW = Math.round(state.cropRect.width * scaleX);
-    const cropH = Math.round(state.cropRect.height * scaleY);
+                const cropX = Math.round(state.cropRect.x * scaleX);
+                const cropY = Math.round(state.cropRect.y * scaleY);
+                const cropW = Math.round(state.cropRect.width * scaleX);
+                const cropH = Math.round(state.cropRect.height * scaleY);
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cropW;
-    tempCanvas.height = cropH;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(state.originalImage, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                // 建立臨時畫布並裁切
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = cropW;
+                tempCanvas.height = cropH;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(state.originalImage, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-    const img = new Image();
-    img.onload = () => {
-        state.originalImage = img;
-        state.imageWidth = cropW;
-        state.imageHeight = cropH;
-        state.aspectRatio = cropW / cropH;
+                // 使用 toBlob 比 toDataURL 更快
+                tempCanvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload = () => {
+                        URL.revokeObjectURL(url);
 
-        // 儲存到歷史記錄
-        saveToHistory();
+                        state.originalImage = img;
+                        state.imageWidth = cropW;
+                        state.imageHeight = cropH;
+                        state.aspectRatio = cropW / cropH;
 
-        cancelCrop();
-        fitImageToViewport();
-        applyAllEffects();
-        updateImageInfo();
-        hideLoading();
-        showToast('裁切完成');
-    };
-    img.src = tempCanvas.toDataURL();
+                        // 儲存到歷史記錄
+                        saveToHistory();
+
+                        cancelCrop();
+                        fitImageToViewport();
+                        applyAllEffects();
+                        updateImageInfo();
+                        hideLoading();
+                        showToast('裁切完成');
+                    };
+                    img.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        hideLoading();
+                        showToast('裁切失敗', 'error');
+                    };
+                    img.src = url;
+                }, 'image/png');
+            } catch (error) {
+                console.error('Crop error:', error);
+                hideLoading();
+                showToast('裁切失敗: ' + error.message, 'error');
+            }
+        }, 50); // 短暫延遲確保 loading 顯示
+    });
 }
 
 function cancelCrop() {
