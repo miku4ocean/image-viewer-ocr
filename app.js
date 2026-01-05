@@ -721,15 +721,11 @@ function updateCropArea() {
     const offsetX = canvasRect.left - viewportRect.left + viewport.scrollLeft;
     const offsetY = canvasRect.top - viewportRect.top + viewport.scrollTop;
 
-    // 裁切框位置需要乘以縮放比例
-    // state.cropRect 是基於原始圖片尺寸的座標
-    // 需要轉換為 canvas 顯示尺寸（已經被縮放過）
-    const zoomRatio = canvas.width / state.imageWidth;
-
-    crop.style.left = (state.cropRect.x * zoomRatio + offsetX) + 'px';
-    crop.style.top = (state.cropRect.y * zoomRatio + offsetY) + 'px';
-    crop.style.width = (state.cropRect.width * zoomRatio) + 'px';
-    crop.style.height = (state.cropRect.height * zoomRatio) + 'px';
+    // cropRect 已經是基於 canvas 顯示尺寸的座標，不需要額外縮放
+    crop.style.left = (state.cropRect.x + offsetX) + 'px';
+    crop.style.top = (state.cropRect.y + offsetY) + 'px';
+    crop.style.width = state.cropRect.width + 'px';
+    crop.style.height = state.cropRect.height + 'px';
 }
 
 function resetCropArea() {
