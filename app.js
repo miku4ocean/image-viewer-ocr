@@ -1996,6 +1996,7 @@ function initEventListeners() {
     document.addEventListener('keydown', (e) => {
         // 裁切模式
         if (state.isCropping) {
+            e.preventDefault(); // 防止觸發其他事件（如下載）
             if (e.key === 'Enter') {
                 applyCrop();
             } else if (e.key === 'Escape') {
@@ -2102,20 +2103,18 @@ function initCropDragHandlers() {
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
 
-        // 計算縮放比例，將螢幕像素轉換為原始圖片座標
-        const zoomRatio = elements.imageCanvas.width / state.imageWidth;
-        const dx = (e.clientX - startX) / zoomRatio;
-        const dy = (e.clientY - startY) / zoomRatio;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
 
-        // 使用原始圖片尺寸作為邊界
-        const imageWidth = state.imageWidth;
-        const imageHeight = state.imageHeight;
-        const minSize = 30 / zoomRatio; // 最小尺寸也需要轉換
+        // 使用畫布顯示尺寸作為邊界（cropRect 是基於畫布顯示尺寸）
+        const canvasWidth = elements.imageCanvas.width;
+        const canvasHeight = elements.imageCanvas.height;
+        const minSize = 30; // 最小裁切尺寸
 
         switch (dragType) {
             case 'move':
-                state.cropRect.x = Math.max(0, Math.min(imageWidth - state.cropRect.width, startRect.x + dx));
-                state.cropRect.y = Math.max(0, Math.min(imageHeight - state.cropRect.height, startRect.y + dy));
+                state.cropRect.x = Math.max(0, Math.min(canvasWidth - state.cropRect.width, startRect.x + dx));
+                state.cropRect.y = Math.max(0, Math.min(canvasHeight - state.cropRect.height, startRect.y + dy));
                 break;
             case 'nw':
                 {
@@ -2129,7 +2128,7 @@ function initCropDragHandlers() {
                 break;
             case 'ne':
                 {
-                    const newWidth = Math.max(minSize, Math.min(imageWidth - startRect.x, startRect.width + dx));
+                    const newWidth = Math.max(minSize, Math.min(canvasWidth - startRect.x, startRect.width + dx));
                     const newY = Math.max(0, Math.min(startRect.y + startRect.height - minSize, startRect.y + dy));
                     state.cropRect.width = newWidth;
                     state.cropRect.height = startRect.height + (startRect.y - newY);
@@ -2139,7 +2138,7 @@ function initCropDragHandlers() {
             case 'sw':
                 {
                     const newX = Math.max(0, Math.min(startRect.x + startRect.width - minSize, startRect.x + dx));
-                    const maxHeight = imageHeight - startRect.y;
+                    const maxHeight = canvasHeight - startRect.y;
                     const newHeight = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
                     state.cropRect.width = startRect.width + (startRect.x - newX);
                     state.cropRect.height = newHeight;
@@ -2148,8 +2147,8 @@ function initCropDragHandlers() {
                 break;
             case 'se':
                 {
-                    const maxWidth = imageWidth - startRect.x;
-                    const maxHeight = imageHeight - startRect.y;
+                    const maxWidth = canvasWidth - startRect.x;
+                    const maxHeight = canvasHeight - startRect.y;
                     state.cropRect.width = Math.max(minSize, Math.min(maxWidth, startRect.width + dx));
                     state.cropRect.height = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
                 }
@@ -2163,13 +2162,13 @@ function initCropDragHandlers() {
                 break;
             case 's':
                 {
-                    const maxHeight = imageHeight - startRect.y;
+                    const maxHeight = canvasHeight - startRect.y;
                     state.cropRect.height = Math.max(minSize, Math.min(maxHeight, startRect.height + dy));
                 }
                 break;
             case 'e':
                 {
-                    const maxWidth = imageWidth - startRect.x;
+                    const maxWidth = canvasWidth - startRect.x;
                     state.cropRect.width = Math.max(minSize, Math.min(maxWidth, startRect.width + dx));
                 }
                 break;
