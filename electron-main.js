@@ -60,7 +60,8 @@ function createMenu() {
                     label: '儲存',
                     accelerator: 'CmdOrCtrl+S',
                     click: () => {
-                        mainWindow.webContents.executeJavaScript('typeof saveImageAs === "function" && saveImageAs()');
+                        // 呼叫正確的函數名稱
+                        mainWindow.webContents.executeJavaScript('typeof saveImage === "function" && state.originalImage && saveImage()');
                     }
                 },
                 { type: 'separator' },

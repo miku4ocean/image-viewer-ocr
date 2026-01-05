@@ -2024,16 +2024,24 @@ function initEventListeners() {
             return;
         }
 
-        // Ctrl/Cmd + S 儲存
+        // Ctrl/Cmd + S 儲存（Electron 環境由選單處理，這裡跳過）
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
-            if (state.originalImage) saveImage();
+            // 檢查是否在 Electron 環境中（使用 userAgent 偵測）
+            const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+            if (!isElectron) {
+                if (state.originalImage) saveImage();
+            }
         }
 
-        // Ctrl/Cmd + O 開啟
+        // Ctrl/Cmd + O 開啟（Electron 環境由選單處理，這裡跳過）
         if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
             e.preventDefault();
-            elements.fileInput.click();
+            // 檢查是否在 Electron 環境中（使用 userAgent 偵測）
+            const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+            if (!isElectron) {
+                elements.fileInput.click();
+            }
         }
 
         // Ctrl/Cmd + Z 還原
