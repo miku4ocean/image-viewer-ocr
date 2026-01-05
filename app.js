@@ -265,31 +265,53 @@ function getFileExtension(filename) {
 // ========================================
 
 function saveToHistory() {
-    // 如果不在歷史末端，移除後面的記錄
+    // 如果不在歷史末端，移除後面的記錄並清理 Blob URLs
     if (state.historyIndex < state.history.length - 1) {
+        // 釋放被移除記錄的 Blob URLs
+        for (let i = state.historyIndex + 1; i < state.history.length; i++) {
+            if (state.history[i] && state.history[i].blobUrl) {
+                URL.revokeObjectURL(state.history[i].blobUrl);
+            }
+        }
         state.history = state.history.slice(0, state.historyIndex + 1);
     }
 
-    // 儲存當前狀態
+    // 使用 toBlob 儲存當前狀態（非同步但更快）
     const canvas = document.createElement('canvas');
     canvas.width = state.imageWidth;
     canvas.height = state.imageHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(state.originalImage, 0, 0);
 
-    state.history.push({
-        imageData: canvas.toDataURL(),
-        width: state.imageWidth,
-        height: state.imageHeight
-    });
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            console.error('Failed to create blob for history');
+            return;
+        }
 
-    // 限制歷史記錄數量
-    if (state.history.length > state.maxHistory) {
-        state.history.shift();
-    } else {
-        state.historyIndex++;
-    }
+        const blobUrl = URL.createObjectURL(blob);
 
+        state.history.push({
+            blobUrl: blobUrl,
+            width: state.imageWidth,
+            height: state.imageHeight
+        });
+
+        // 限制歷史記錄數量
+        if (state.history.length > state.maxHistory) {
+            const removed = state.history.shift();
+            if (removed && removed.blobUrl) {
+                URL.revokeObjectURL(removed.blobUrl);
+            }
+        } else {
+            state.historyIndex++;
+        }
+
+        updateToolbarState(true);
+    }, 'image/png');
+
+    // 立即更新索引（非同步保存會在稍後完成）
+    // 暫時允許 UI 響應
     updateToolbarState(true);
 }
 
@@ -325,7 +347,8 @@ function restoreFromHistory(index) {
         updateImageInfo();
         updateToolbarState(true);
     };
-    img.src = record.imageData;
+    // 支援舊格式 (imageData) 和新格式 (blobUrl)
+    img.src = record.blobUrl || record.imageData;
 }
 
 // ========================================
