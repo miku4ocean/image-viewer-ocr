@@ -77,6 +77,7 @@ const elements = {
     // 工具列按鈕
     btnOpen: document.getElementById('btn-open'),
     btnSave: document.getElementById('btn-save'),
+    btnClose: document.getElementById('btn-close'),
     btnCrop: document.getElementById('btn-crop'),
     btnResize: document.getElementById('btn-resize'),
     btnRemoveBg: document.getElementById('btn-remove-bg'),
@@ -240,6 +241,7 @@ function updateImageInfo() {
 // 啟用/停用工具按鈕
 function updateToolbarState(enabled) {
     elements.btnSave.disabled = !enabled;
+    if (elements.btnClose) elements.btnClose.disabled = !enabled;
     elements.btnCrop.disabled = !enabled;
     elements.btnResize.disabled = !enabled;
     elements.btnRemoveBg.disabled = !enabled;
@@ -349,6 +351,58 @@ function restoreFromHistory(index) {
     };
     // 支援舊格式 (imageData) 和新格式 (blobUrl)
     img.src = record.blobUrl || record.imageData;
+}
+
+// ========================================
+// 4.5 關閉圖片和重置狀態
+// ========================================
+
+function closeImage() {
+    // 清理 Blob URLs
+    state.history.forEach(record => {
+        if (record && record.blobUrl) {
+            URL.revokeObjectURL(record.blobUrl);
+        }
+    });
+
+    // 重置所有狀態
+    state.originalImage = null;
+    state.currentImage = null;
+    state.imageWidth = 0;
+    state.imageHeight = 0;
+    state.fileName = '';
+    state.fileExtension = 'png';
+    state.history = [];
+    state.historyIndex = -1;
+    state.zoom = 1;
+    state.activeFilter = 'none';
+    state.isCropping = false;
+    state.isOCRMode = false;
+    state.isMaskEditing = false;
+    state.dpi = 300;
+    state.aspectRatio = 1;
+
+    // 重置調整值
+    resetAdjustments();
+
+    // 清空畫布
+    const canvas = elements.imageCanvas;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 隱藏編輯器，顯示歡迎畫面
+    elements.editorContainer.classList.add('nordic-hidden');
+    elements.welcomeScreen.classList.remove('nordic-hidden');
+
+    // 更新 UI
+    updateToolbarState(false);
+    updateImageInfo();
+    updateStatus('已關閉圖片');
+
+    // 重置檔案輸入，允許選擇同一個檔案
+    elements.fileInput.value = '';
+
+    showToast('圖片已關閉');
 }
 
 // ========================================
@@ -819,9 +873,18 @@ function cancelCrop() {
 function openResizeModal() {
     if (!state.originalImage) return;
 
-    elements.resizeWidth.value = state.imageWidth;
-    elements.resizeHeight.value = state.imageHeight;
+    // 使用原始圖片的自然尺寸，確保顯示正確的當前尺寸
+    const currentWidth = state.originalImage.naturalWidth || state.originalImage.width;
+    const currentHeight = state.originalImage.naturalHeight || state.originalImage.height;
+
+    elements.resizeWidth.value = currentWidth;
+    elements.resizeHeight.value = currentHeight;
     state.maintainRatio = elements.resizeMaintainRatio.checked;
+
+    // 同步更新 state 中的尺寸，確保一致性
+    state.imageWidth = currentWidth;
+    state.imageHeight = currentHeight;
+    state.aspectRatio = currentWidth / currentHeight;
 
     elements.resizeModal.classList.remove('nordic-hidden');
 }
@@ -2070,6 +2133,10 @@ function initEventListeners() {
     // 儲存
     elements.btnSave.addEventListener('click', saveImage);
 
+    // 關閉
+    if (elements.btnClose) elements.btnClose.addEventListener('click', closeImage);
+
+
     // 歷史記錄
     if (elements.btnUndo) elements.btnUndo.addEventListener('click', undo);
     if (elements.btnRedo) elements.btnRedo.addEventListener('click', redo);
@@ -2108,13 +2175,16 @@ function initEventListeners() {
         }
     });
 
-    // 快速縮放按鈕
+    // 快速縮放按鈕 - 使用原始圖片尺寸而非 state 中可能被修改的尺寸
     document.querySelectorAll('.resize-scale-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const scale = parseFloat(btn.dataset.scale);
             if (scale && state.originalImage) {
-                const newWidth = Math.round(state.imageWidth * scale);
-                const newHeight = Math.round(state.imageHeight * scale);
+                // 使用原始圖片的自然尺寸，而非 state.imageWidth/Height
+                const originalWidth = state.originalImage.naturalWidth || state.originalImage.width;
+                const originalHeight = state.originalImage.naturalHeight || state.originalImage.height;
+                const newWidth = Math.round(originalWidth * scale);
+                const newHeight = Math.round(originalHeight * scale);
                 elements.resizeWidth.value = newWidth;
                 elements.resizeHeight.value = newHeight;
             }
