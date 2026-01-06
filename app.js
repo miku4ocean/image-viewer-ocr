@@ -1925,9 +1925,13 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
+        // 支援多語言：繁體中文、簡體中文、英文、日文、韓文
+        // Tesseract 會自動偵測並辨識這些語言
+        const languages = 'chi_tra+chi_sim+eng+jpn+kor';
+
         const result = await Tesseract.recognize(
             sourceCanvas,
-            'chi_tra+eng',
+            languages,
             {
                 logger: (m) => {
                     if (m.status === 'recognizing text') {
