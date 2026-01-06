@@ -28,11 +28,15 @@
             ]
         },
         "files": [
-            "**/*",
-            "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-            "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-            "!node_modules/.cache/**/*",
-            "!**/*.map"
+            "index.html",
+            "app.js",
+            "styles.css",
+            "electron-main.js",
+            "assets/**/*",
+            "!assets/icon.png",
+            "!releases/**/*",
+            "!dist/**/*",
+            "!*.md"
         ],
         "directories": {
             "output": "dist"
