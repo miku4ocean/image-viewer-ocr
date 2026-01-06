@@ -834,6 +834,7 @@ function applyResize() {
     const newWidth = parseInt(elements.resizeWidth.value);
     const newHeight = parseInt(elements.resizeHeight.value);
     const newDpi = parseInt(elements.resizeDpi.value) || 72;
+    const qualityMode = document.getElementById('resize-quality')?.value || 'smooth';
 
     if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
         showToast('請輸入有效的尺寸', 'error');
@@ -842,31 +843,160 @@ function applyResize() {
 
     showLoading('調整尺寸中...');
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = newWidth;
-    tempCanvas.height = newHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(state.originalImage, 0, 0, newWidth, newHeight);
+    // 使用 requestAnimationFrame 確保 loading 顯示
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            try {
+                let resultCanvas;
 
-    const img = new Image();
-    img.onload = () => {
-        state.originalImage = img;
-        state.imageWidth = newWidth;
-        state.imageHeight = newHeight;
-        state.aspectRatio = newWidth / newHeight;
-        state.dpi = newDpi; // 更新 DPI 狀態
+                if (qualityMode === 'sharp' && newWidth > state.imageWidth) {
+                    // 銳利模式：使用多步驟放大 + 銳化處理（適合文字）
+                    resultCanvas = upscaleSharp(state.originalImage, newWidth, newHeight);
+                } else if (qualityMode === 'smooth') {
+                    // 平滑模式：高品質插值
+                    resultCanvas = upscaleSmooth(state.originalImage, newWidth, newHeight);
+                } else {
+                    // 標準模式：快速處理
+                    resultCanvas = upscaleStandard(state.originalImage, newWidth, newHeight);
+                }
 
-        // 儲存到歷史記錄
-        saveToHistory();
+                const img = new Image();
+                img.onload = () => {
+                    state.originalImage = img;
+                    state.imageWidth = newWidth;
+                    state.imageHeight = newHeight;
+                    state.aspectRatio = newWidth / newHeight;
+                    state.dpi = newDpi;
 
-        closeResizeModal();
-        fitImageToViewport();
-        applyAllEffects();
-        updateImageInfo();
-        hideLoading();
-        showToast(`尺寸已調整為 ${newWidth} × ${newHeight} (${newDpi} DPI)`);
-    };
-    img.src = tempCanvas.toDataURL();
+                    saveToHistory();
+                    closeResizeModal();
+                    fitImageToViewport();
+                    applyAllEffects();
+                    updateImageInfo();
+                    hideLoading();
+                    showToast(`尺寸已調整為 ${newWidth} × ${newHeight} (${newDpi} DPI)`);
+                };
+                img.src = resultCanvas.toDataURL();
+            } catch (error) {
+                console.error('Resize error:', error);
+                hideLoading();
+                showToast('調整尺寸失敗', 'error');
+            }
+        }, 50);
+    });
+}
+
+// 標準放大（快速）
+function upscaleStandard(sourceImage, targetWidth, targetHeight) {
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(sourceImage, 0, 0, targetWidth, targetHeight);
+    return canvas;
+}
+
+// 平滑放大（適合照片）
+function upscaleSmooth(sourceImage, targetWidth, targetHeight) {
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sourceImage, 0, 0, targetWidth, targetHeight);
+    return canvas;
+}
+
+// 銳利放大（適合文字/線條）- 使用多步驟放大 + 銳化
+function upscaleSharp(sourceImage, targetWidth, targetHeight) {
+    const sourceWidth = sourceImage.width || sourceImage.naturalWidth;
+    const sourceHeight = sourceImage.height || sourceImage.naturalHeight;
+    const scaleX = targetWidth / sourceWidth;
+    const scaleY = targetHeight / sourceHeight;
+    const scale = Math.max(scaleX, scaleY);
+
+    // 如果放大倍數大於 2，使用漸進式放大
+    if (scale > 2) {
+        // 分步放大，每次最多 2 倍
+        let currentCanvas = document.createElement('canvas');
+        currentCanvas.width = sourceWidth;
+        currentCanvas.height = sourceHeight;
+        let currentCtx = currentCanvas.getContext('2d');
+        currentCtx.drawImage(sourceImage, 0, 0);
+
+        let currentWidth = sourceWidth;
+        let currentHeight = sourceHeight;
+
+        while (currentWidth < targetWidth || currentHeight < targetHeight) {
+            const nextWidth = Math.min(currentWidth * 2, targetWidth);
+            const nextHeight = Math.min(currentHeight * 2, targetHeight);
+
+            const nextCanvas = document.createElement('canvas');
+            nextCanvas.width = nextWidth;
+            nextCanvas.height = nextHeight;
+            const nextCtx = nextCanvas.getContext('2d');
+            nextCtx.imageSmoothingEnabled = true;
+            nextCtx.imageSmoothingQuality = 'high';
+            nextCtx.drawImage(currentCanvas, 0, 0, nextWidth, nextHeight);
+
+            currentCanvas = nextCanvas;
+            currentWidth = nextWidth;
+            currentHeight = nextHeight;
+        }
+
+        // 應用銳化
+        return applySharpen(currentCanvas);
+    } else {
+        // 直接放大並銳化
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(sourceImage, 0, 0, targetWidth, targetHeight);
+        return applySharpen(canvas);
+    }
+}
+
+// 銳化處理（Unsharp Mask）
+function applySharpen(canvas) {
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // 複製原始資料
+    const original = new Uint8ClampedArray(data);
+
+    // Unsharp mask 參數
+    const amount = 0.5; // 銳化強度
+
+    // 簡化的銳化核心（3x3 Laplacian）
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4;
+
+            for (let c = 0; c < 3; c++) {
+                // 計算拉普拉斯邊緣
+                const center = original[idx + c];
+                const top = original[((y - 1) * width + x) * 4 + c];
+                const bottom = original[((y + 1) * width + x) * 4 + c];
+                const left = original[(y * width + (x - 1)) * 4 + c];
+                const right = original[(y * width + (x + 1)) * 4 + c];
+
+                const laplacian = 4 * center - top - bottom - left - right;
+
+                // 應用銳化
+                data[idx + c] = Math.max(0, Math.min(255, center + amount * laplacian));
+            }
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
 }
 
 // ========================================
@@ -1840,9 +1970,13 @@ function saveImage() {
     const timestamp = `${year}${month}${day}${hour}${minute}${second}`;
     const defaultName = `images_${timestamp}.${extension}`;
 
+    // 檢測是否在 Electron 環境中
+    const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+
     outputCanvas.toBlob(async (blob) => {
-        // 嘗試使用 File System Access API（讓用戶選擇儲存位置）
-        if ('showSaveFilePicker' in window) {
+        // 在 Electron 環境中，使用傳統下載方式（避免 showSaveFilePicker 衝突）
+        // 在瀏覽器中，嘗試使用 File System Access API
+        if (!isElectron && 'showSaveFilePicker' in window) {
             try {
                 const handle = await window.showSaveFilePicker({
                     suggestedName: defaultName,
@@ -1871,7 +2005,7 @@ function saveImage() {
             }
         }
 
-        // Fallback：傳統下載方式
+        // Fallback 或 Electron：傳統下載方式
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1956,6 +2090,19 @@ function initEventListeners() {
         if (state.maintainRatio && state.aspectRatio) {
             elements.resizeWidth.value = Math.round(elements.resizeHeight.value * state.aspectRatio);
         }
+    });
+
+    // 快速縮放按鈕
+    document.querySelectorAll('.resize-scale-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const scale = parseFloat(btn.dataset.scale);
+            if (scale && state.originalImage) {
+                const newWidth = Math.round(state.imageWidth * scale);
+                const newHeight = Math.round(state.imageHeight * scale);
+                elements.resizeWidth.value = newWidth;
+                elements.resizeHeight.value = newHeight;
+            }
+        });
     });
 
     // 背景移除

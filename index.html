@@ -504,6 +504,19 @@
                 <button class="modal-close" id="resize-modal-close">✕</button>
             </div>
             <div class="nordic-card-body">
+                <!-- 快速縮放按鈕 -->
+                <div class="resize-quick-scale">
+                    <label>快速縮放</label>
+                    <div class="resize-quick-buttons">
+                        <button class="nordic-btn nordic-btn-secondary resize-scale-btn" data-scale="0.5">0.5X</button>
+                        <button class="nordic-btn nordic-btn-secondary resize-scale-btn" data-scale="1">1X</button>
+                        <button class="nordic-btn nordic-btn-secondary resize-scale-btn" data-scale="2">2X</button>
+                        <button class="nordic-btn nordic-btn-secondary resize-scale-btn" data-scale="4">4X</button>
+                    </div>
+                </div>
+
+                <div class="resize-divider"></div>
+
                 <div class="resize-form">
                     <div class="resize-input-group">
                         <label>寬度 (px)</label>
@@ -520,6 +533,20 @@
                     <span class="nordic-checkbox-box"></span>
                     <span>維持比例</span>
                 </label>
+
+                <!-- 放大品質設定 -->
+                <div class="resize-divider"></div>
+                <div class="resize-quality-section">
+                    <div class="resize-input-group">
+                        <label>放大品質</label>
+                        <select class="nordic-input" id="resize-quality">
+                            <option value="standard">標準 (快速)</option>
+                            <option value="smooth" selected>平滑 (適合照片)</option>
+                            <option value="sharp">銳利 (適合文字/線條)</option>
+                        </select>
+                    </div>
+                    <p class="resize-dpi-hint">放大時建議選擇「銳利」以保持文字清晰</p>
+                </div>
 
                 <!-- 解析度設定 -->
                 <div class="resize-divider"></div>

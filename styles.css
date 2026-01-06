@@ -579,7 +579,8 @@ body {
     margin: var(--nordic-spacing-md) 0;
 }
 
-.resize-dpi-section {
+.resize-dpi-section,
+.resize-quality-section {
     margin-top: var(--nordic-spacing-sm);
 }
 
@@ -587,6 +588,36 @@ body {
     font-size: var(--nordic-font-size-xs);
     color: var(--nordic-text-muted);
     margin-top: var(--nordic-spacing-xs);
+}
+
+/* 快速縮放按鈕區 */
+.resize-quick-scale {
+    margin-bottom: var(--nordic-spacing-sm);
+}
+
+.resize-quick-scale label {
+    display: block;
+    font-size: var(--nordic-font-size-sm);
+    font-weight: 500;
+    color: var(--nordic-text-secondary);
+    margin-bottom: var(--nordic-spacing-xs);
+}
+
+.resize-quick-buttons {
+    display: flex;
+    gap: var(--nordic-spacing-xs);
+}
+
+.resize-scale-btn {
+    flex: 1;
+    padding: var(--nordic-spacing-xs) var(--nordic-spacing-sm);
+    font-size: var(--nordic-font-size-sm);
+    font-weight: 600;
+}
+
+.resize-scale-btn:hover {
+    background: var(--nordic-primary-color);
+    color: white;
 }
 
 /* ----------------------------------------
