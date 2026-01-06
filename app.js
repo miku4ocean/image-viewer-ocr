@@ -1925,9 +1925,10 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 支援多語言：繁體中文、簡體中文、英文、日文、韓文
-        // Tesseract 會自動偵測並辨識這些語言
-        const languages = 'chi_tra+chi_sim+eng+jpn+kor';
+        // 多語言辨識：優先順序影響辨識準確度
+        // 日文和韓文有獨特字符，放前面可以提高辨識率
+        // jpn_vert = 日文直書, jpn = 日文橫書
+        const languages = 'jpn+jpn_vert+kor+chi_tra+chi_sim+eng';
 
         const result = await Tesseract.recognize(
             sourceCanvas,
@@ -1937,6 +1938,8 @@ async function performOCR(region = null) {
                     if (m.status === 'recognizing text') {
                         const progress = Math.round(m.progress * 100);
                         elements.loadingText.textContent = `辨識中... ${progress}%`;
+                    } else if (m.status === 'loading language traineddata') {
+                        elements.loadingText.textContent = `載入語言資料... ${Math.round(m.progress * 100)}%`;
                     }
                 }
             }
