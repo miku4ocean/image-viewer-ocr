@@ -841,6 +841,22 @@ function applyResize() {
         return;
     }
 
+    // 檢查尺寸限制 - Canvas 最大約 16384px 或 100 百萬像素
+    const maxDimension = 16384;
+    const maxPixels = 100000000; // 100 MP
+    const totalPixels = newWidth * newHeight;
+
+    if (newWidth > maxDimension || newHeight > maxDimension) {
+        showToast(`尺寸過大！單邊最大 ${maxDimension}px`, 'error');
+        return;
+    }
+
+    if (totalPixels > maxPixels) {
+        const maxMp = Math.floor(maxPixels / 1000000);
+        showToast(`圖片過大！最大約 ${maxMp} 百萬像素`, 'error');
+        return;
+    }
+
     showLoading('調整尺寸中...');
 
     // 使用 requestAnimationFrame 確保 loading 顯示
