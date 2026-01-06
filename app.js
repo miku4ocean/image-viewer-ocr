@@ -1909,13 +1909,11 @@ async function performOCR(region = null) {
 
         if (region) {
             // 只辨識選取區域
-            const scaleX = state.imageWidth / elements.imageCanvas.width;
-            const scaleY = state.imageHeight / elements.imageCanvas.height;
-
-            const regionX = Math.round(region.x * scaleX);
-            const regionY = Math.round(region.y * scaleY);
-            const regionW = Math.round(region.width * scaleX);
-            const regionH = Math.round(region.height * scaleY);
+            // region 座標已經是原始圖片座標（在 initOCRRegionHandlers 中已轉換）
+            const regionX = Math.max(0, region.x);
+            const regionY = Math.max(0, region.y);
+            const regionW = Math.min(region.width, state.imageWidth - regionX);
+            const regionH = Math.min(region.height, state.imageHeight - regionY);
 
             sourceCanvas = document.createElement('canvas');
             sourceCanvas.width = regionW;
