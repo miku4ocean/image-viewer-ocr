@@ -535,14 +535,8 @@ async function convertHeicAndLoad(file) {
         console.error('HEIC conversion error:', error);
         hideLoading();
 
-        // 提供更詳細的錯誤訊息
-        let errorMsg = 'HEIC 轉換失敗';
-        if (error.message && error.message.includes('not a heic')) {
-            errorMsg = '此檔案可能不是有效的 HEIC 格式';
-        } else if (error.message && error.message.includes('network')) {
-            errorMsg = '無法下載轉換程式，請檢查網路連線';
-        }
-        showToast(errorMsg, 'error');
+        // 提供更詳細的錯誤訊息和替代方案
+        showToast('HEIC 轉換失敗。建議使用 Mac App 版本，或先用「預覽程式」將 HEIC 轉成 JPEG', 'error', 8000);
     }
 }
 
