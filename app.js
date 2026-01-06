@@ -476,20 +476,35 @@ function loadImage(file) {
 
 // HEIC/HEIF 檔案轉換
 async function convertHeicAndLoad(file) {
-    showLoading('轉換 HEIC 檔案中...');
+    showLoading('載入 HEIC 檔案中...');
+
+    // 首先嘗試直接載入（Safari 和某些瀏覽器原生支援 HEIC）
+    const directLoadSuccess = await tryDirectLoad(file);
+    if (directLoadSuccess) {
+        return;
+    }
+
+    // 直接載入失敗，使用 heic2any 轉換
+    showLoading('轉換 HEIC 格式中...');
 
     try {
         // 動態載入 heic2any 函式庫
         if (typeof heic2any === 'undefined') {
+            showLoading('下載 HEIC 轉換程式...');
             await loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js');
         }
 
+        showLoading('轉換中，請稍候...');
+
         // 轉換 HEIC 到 JPEG
-        const blob = await heic2any({
+        const result = await heic2any({
             blob: file,
             toType: 'image/jpeg',
             quality: 0.92
         });
+
+        // heic2any 可能返回單個 blob 或 blob 陣列（多圖 HEIC）
+        const blob = Array.isArray(result) ? result[0] : result;
 
         // 建立新的 File 物件
         const convertedFile = new File(
@@ -566,6 +581,53 @@ function loadScript(src) {
         document.head.appendChild(script);
     });
 }
+
+// 嘗試直接載入圖片（用於測試瀏覽器是否原生支援 HEIC）
+function tryDirectLoad(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // 成功載入
+                state.originalImage = img;
+                state.currentImage = img;
+                state.imageWidth = img.width;
+                state.imageHeight = img.height;
+                state.fileName = file.name;
+                state.fileExtension = getFileExtension(file.name);
+                state.aspectRatio = img.width / img.height;
+
+                state.history = [];
+                state.historyIndex = -1;
+                saveToHistory();
+                resetAdjustments();
+
+                elements.welcomeScreen.classList.add('nordic-hidden');
+                elements.editorContainer.classList.remove('nordic-hidden');
+
+                fitImageToViewport();
+                applyAllEffects();
+                updateToolbarState(true);
+                updateImageInfo();
+                updateStatus('圖片已載入');
+                hideLoading();
+                showToast('HEIC 圖片載入成功');
+                resolve(true);
+            };
+            img.onerror = () => {
+                // 載入失敗，需要轉換
+                resolve(false);
+            };
+            img.src = e.target.result;
+        };
+        reader.onerror = () => {
+            resolve(false);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 
 function fitImageToViewport() {
     if (!state.originalImage) return;
