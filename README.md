@@ -219,7 +219,7 @@ image-viewer-ocr/
 
 ```bash
 # 進入專案目錄
-cd /Users/leonalin/Code/mento12/image-viewer-ocr
+cd image-viewer-ocr
 
 # 安裝相依套件
 npm install
@@ -236,13 +236,12 @@ npm run build:dmg
 # 輸出位置：dist/Image Viewer OCR-x.x.x-arm64.dmg
 ```
 
-### 專案路徑
+### 主要檔案
 
-- **專案目錄**：`/Users/leonalin/Code/mento12/image-viewer-ocr`
 - **網頁版入口**：`index.html`
 - **主程式邏輯**：`app.js`
 - **樣式表**：`styles.css`
-- **Mac 安裝檔**：`releases/Image Viewer OCR-1.2.3-arm64.dmg`
+- **Mac 安裝檔**：`releases/Image Viewer OCR-x.x.x-arm64.dmg`
 
 ---
 

@@ -1719,8 +1719,18 @@ function closeOCRPanel() {
 // 10. 儲存圖片（修復版）
 // ========================================
 
+// 儲存中標記，防止重複觸發
+let isSaving = false;
+
 function saveImage() {
     if (!state.originalImage) return;
+
+    // 防止重複觸發
+    if (isSaving) {
+        console.log('Save already in progress, skipping...');
+        return;
+    }
+    isSaving = true;
 
     showLoading('儲存中...');
 
@@ -1848,12 +1858,14 @@ function saveImage() {
                 await writable.close();
 
                 hideLoading();
+                isSaving = false;
                 showToast(`已儲存為 ${handle.name}`);
                 return;
             } catch (err) {
                 // 用戶取消或不支援，fallback 到傳統下載
                 if (err.name === 'AbortError') {
                     hideLoading();
+                    isSaving = false;
                     return;
                 }
             }
@@ -1870,6 +1882,7 @@ function saveImage() {
         URL.revokeObjectURL(url);
 
         hideLoading();
+        isSaving = false;
         showToast(`已儲存為 ${defaultName}`);
     }, mimeType, quality);
 }
