@@ -416,21 +416,21 @@ function loadImage(file) {
         file.type === 'image/heic' ||
         file.type === 'image/heif';
 
+    // 檢測是否在 Electron 環境中
+    const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+
+    // Web 版不支援 HEIC，只有 Mac App 支援
+    if (isHeic && !isElectron) {
+        showToast('Web 版不支援 HEIC 格式，請使用 Mac App 版本或先將檔案轉成 JPEG', 'error', 6000);
+        return;
+    }
+
     if (!file || (!file.type.startsWith('image/') && !isHeic)) {
         showToast('請選擇有效的圖片檔案', 'error');
         return;
     }
 
     showLoading('載入圖片中...');
-
-    // 檢測是否在 Electron 環境中（macOS 原生支援 HEIC）
-    const isElectron = navigator.userAgent.toLowerCase().includes('electron');
-
-    // 如果是 HEIC 檔案且不在 Electron 環境中，需要轉換
-    if (isHeic && !isElectron) {
-        convertHeicAndLoad(file);
-        return;
-    }
 
     // Electron 環境或非 HEIC 檔案：直接載入（macOS 原生支援 HEIC）
 
