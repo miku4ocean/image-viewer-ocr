@@ -488,32 +488,62 @@ async function convertHeicAndLoad(file) {
     showLoading('轉換 HEIC 格式中...');
 
     try {
-        // 動態載入 heic2any 函式庫
-        if (typeof heic2any === 'undefined') {
-            showLoading('下載 HEIC 轉換程式...');
-            await loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js');
+        // 嘗試使用 heic-to 函式庫（對新版 iOS 支援更好）
+        showLoading('下載 HEIC 轉換程式...');
+
+        // 嘗試 heic-to（較新的函式庫，支援 iOS 18+）
+        try {
+            if (typeof heicTo === 'undefined') {
+                await loadScript('https://cdn.jsdelivr.net/npm/heic-to@1/dist/heic-to.min.js');
+            }
+
+            showLoading('轉換中，請稍候...');
+            const blob = await heicTo.heic2jpeg(file, 0.92);
+            await loadBlobAsImage(blob, file.name);
+            return;
+        } catch (e1) {
+            console.log('heic-to failed, trying heic2any...', e1);
         }
 
-        showLoading('轉換中，請稍候...');
+        // 回退到 heic2any
+        try {
+            if (typeof heic2any === 'undefined') {
+                await loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js');
+            }
 
-        // 轉換 HEIC 到 JPEG
-        const result = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.92
-        });
+            showLoading('轉換中，請稍候...');
+            const result = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.92
+            });
 
-        // heic2any 可能返回單個 blob 或 blob 陣列（多圖 HEIC）
-        const blob = Array.isArray(result) ? result[0] : result;
+            const blob = Array.isArray(result) ? result[0] : result;
+            await loadBlobAsImage(blob, file.name);
+            return;
+        } catch (e2) {
+            console.log('heic2any also failed', e2);
+            throw e2;
+        }
 
-        // 建立新的 File 物件
-        const convertedFile = new File(
-            [blob],
-            file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
-            { type: 'image/jpeg' }
-        );
+    } catch (error) {
+        console.error('HEIC conversion error:', error);
+        hideLoading();
 
-        // 載入轉換後的檔案
+        // 提供更詳細的錯誤訊息
+        let errorMsg = 'HEIC 轉換失敗';
+        if (error.message && error.message.includes('not a heic')) {
+            errorMsg = '此檔案可能不是有效的 HEIC 格式';
+        } else if (error.message && error.message.includes('network')) {
+            errorMsg = '無法下載轉換程式，請檢查網路連線';
+        }
+        showToast(errorMsg, 'error');
+    }
+}
+
+// 從 Blob 載入圖片
+function loadBlobAsImage(blob, originalFileName) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -522,47 +552,38 @@ async function convertHeicAndLoad(file) {
                 state.currentImage = img;
                 state.imageWidth = img.width;
                 state.imageHeight = img.height;
-                state.fileName = convertedFile.name;
+                state.fileName = originalFileName.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg');
                 state.fileExtension = 'jpg';
                 state.aspectRatio = img.width / img.height;
 
-                // 清空並初始化歷史記錄
                 state.history = [];
                 state.historyIndex = -1;
                 saveToHistory();
-
-                // 重置調整值
                 resetAdjustments();
 
-                // 顯示編輯器
                 elements.welcomeScreen.classList.add('nordic-hidden');
                 elements.editorContainer.classList.remove('nordic-hidden');
 
-                // 繪製圖片
                 fitImageToViewport();
                 applyAllEffects();
-
-                // 更新 UI
                 updateToolbarState(true);
                 updateImageInfo();
                 updateStatus('HEIC 圖片已載入');
                 hideLoading();
 
                 showToast('HEIC 圖片載入成功');
+                resolve();
             };
             img.onerror = () => {
                 hideLoading();
                 showToast('無法載入轉換後的圖片', 'error');
+                reject(new Error('Image load failed'));
             };
             img.src = e.target.result;
         };
+        reader.onerror = reject;
         reader.readAsDataURL(blob);
-
-    } catch (error) {
-        console.error('HEIC conversion error:', error);
-        hideLoading();
-        showToast('HEIC 轉換失敗，請確認檔案格式正確', 'error');
-    }
+    });
 }
 
 // 動態載入腳本
