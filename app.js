@@ -410,12 +410,24 @@ function closeImage() {
 // ========================================
 
 function loadImage(file) {
-    if (!file || !file.type.startsWith('image/')) {
+    // 檢查是否為 HEIC/HEIF 檔案
+    const isHeic = file.name.toLowerCase().endsWith('.heic') ||
+        file.name.toLowerCase().endsWith('.heif') ||
+        file.type === 'image/heic' ||
+        file.type === 'image/heif';
+
+    if (!file || (!file.type.startsWith('image/') && !isHeic)) {
         showToast('請選擇有效的圖片檔案', 'error');
         return;
     }
 
     showLoading('載入圖片中...');
+
+    // 如果是 HEIC 檔案，需要先轉換
+    if (isHeic) {
+        convertHeicAndLoad(file);
+        return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -460,6 +472,99 @@ function loadImage(file) {
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+
+// HEIC/HEIF 檔案轉換
+async function convertHeicAndLoad(file) {
+    showLoading('轉換 HEIC 檔案中...');
+
+    try {
+        // 動態載入 heic2any 函式庫
+        if (typeof heic2any === 'undefined') {
+            await loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js');
+        }
+
+        // 轉換 HEIC 到 JPEG
+        const blob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.92
+        });
+
+        // 建立新的 File 物件
+        const convertedFile = new File(
+            [blob],
+            file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+            { type: 'image/jpeg' }
+        );
+
+        // 載入轉換後的檔案
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                state.originalImage = img;
+                state.currentImage = img;
+                state.imageWidth = img.width;
+                state.imageHeight = img.height;
+                state.fileName = convertedFile.name;
+                state.fileExtension = 'jpg';
+                state.aspectRatio = img.width / img.height;
+
+                // 清空並初始化歷史記錄
+                state.history = [];
+                state.historyIndex = -1;
+                saveToHistory();
+
+                // 重置調整值
+                resetAdjustments();
+
+                // 顯示編輯器
+                elements.welcomeScreen.classList.add('nordic-hidden');
+                elements.editorContainer.classList.remove('nordic-hidden');
+
+                // 繪製圖片
+                fitImageToViewport();
+                applyAllEffects();
+
+                // 更新 UI
+                updateToolbarState(true);
+                updateImageInfo();
+                updateStatus('HEIC 圖片已載入');
+                hideLoading();
+
+                showToast('HEIC 圖片載入成功');
+            };
+            img.onerror = () => {
+                hideLoading();
+                showToast('無法載入轉換後的圖片', 'error');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(blob);
+
+    } catch (error) {
+        console.error('HEIC conversion error:', error);
+        hideLoading();
+        showToast('HEIC 轉換失敗，請確認檔案格式正確', 'error');
+    }
+}
+
+// 動態載入腳本
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        // 檢查是否已載入
+        if (document.querySelector(`script[src="${src}"]`)) {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
 function fitImageToViewport() {
@@ -2471,7 +2576,7 @@ function initOCRRegionHandlers() {
         }
 
         isDrawing = true;
-        // 相對於 canvas 的座標
+        // 相對於 canvas 顯示區域的座標
         startX = e.clientX - canvasRect.left;
         startY = e.clientY - canvasRect.top;
 
@@ -2492,11 +2597,11 @@ function initOCRRegionHandlers() {
 
         const canvasRect = elements.imageCanvas.getBoundingClientRect();
 
-        // 當前滑鼠相對於 canvas 的座標
-        const currentX = Math.max(0, Math.min(elements.imageCanvas.width, e.clientX - canvasRect.left));
-        const currentY = Math.max(0, Math.min(elements.imageCanvas.height, e.clientY - canvasRect.top));
+        // 當前滑鼠相對於 canvas 顯示區域的座標（使用 clientRect 的寬高）
+        const currentX = Math.max(0, Math.min(canvasRect.width, e.clientX - canvasRect.left));
+        const currentY = Math.max(0, Math.min(canvasRect.height, e.clientY - canvasRect.top));
 
-        // 計算選取區域（相對於 canvas）
+        // 計算選取區域（相對於 canvas 顯示區域）
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
         const width = Math.abs(currentX - startX);
@@ -2510,8 +2615,17 @@ function initOCRRegionHandlers() {
             elements.ocrRegionBox.style.height = height + 'px';
         }
 
-        // 儲存相對於 canvas 的座標（用於 OCR）
-        state.ocrRegion = { x, y, width, height };
+        // 儲存相對於 canvas 顯示區域的座標（用於 OCR，需轉換為原始圖片座標）
+        // 計算縮放比例：原始圖片尺寸 / 顯示尺寸
+        const scaleX = state.imageWidth / canvasRect.width;
+        const scaleY = state.imageHeight / canvasRect.height;
+
+        state.ocrRegion = {
+            x: Math.round(x * scaleX),
+            y: Math.round(y * scaleY),
+            width: Math.round(width * scaleX),
+            height: Math.round(height * scaleY)
+        };
     });
 
     viewport.addEventListener('mouseup', () => {
