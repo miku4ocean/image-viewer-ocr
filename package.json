@@ -1,7 +1,7 @@
 {
     "name": "image-viewer-ocr",
     "productName": "Image Viewer OCR",
-    "version": "1.3.5",
+    "version": "1.3.6",
     "description": "圖片檢視器 - 支援濾鏡、調整、OCR文字辨識、AI去背",
     "main": "electron-main.js",
     "scripts": {
@@ -23,10 +23,9 @@
             "category": "public.app-category.graphics-design",
             "icon": "assets/icon.icns",
             "target": [
-                "dmg"
-            ],
-            "identity": null,
-            "hardenedRuntime": false
+                "dmg",
+                "zip"
+            ]
         },
         "files": [
             "**/*",
