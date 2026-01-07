@@ -132,8 +132,19 @@ image-viewer-ocr/
 3. 將 **Image Viewer OCR** 拖曳到 **Applications** 資料夾
 4. 從 Launchpad 或 Applications 資料夾啟動
 
-**首次開啟注意事項**：
-如果出現「無法打開」的提示，請到 **系統設定 > 隱私權與安全性**，點擊「仍要打開」。
+#### ⚠️ 首次開啟注意事項
+
+由於此應用程式未經 Apple 簽署，macOS 會阻止開啟。請在終端機執行以下指令後再開啟：
+
+```bash
+# 移除安全性隔離標記
+xattr -cr /Applications/Image\ Viewer\ OCR.app
+```
+
+或者手動操作：
+1. 開啟應用程式時如果出現「無法打開」的提示
+2. 前往 **系統設定 > 隱私權與安全性**
+3. 找到 Image Viewer OCR，點擊「仍要打開」
 
 ---
 
