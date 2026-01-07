@@ -1969,9 +1969,9 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 語言順序影響辨識優先級
-        // 日文放第一位以提高日文準確度
-        const languages = 'jpn+chi_tra+chi_sim+eng';
+        // 最佳語言組合（繁中+日文+英文）
+        // 加入 chi_sim 會降低日文準確度，故不使用
+        const languages = 'chi_tra+jpn+eng';
         console.log('OCR 使用語言:', languages);
 
         const result = await Tesseract.recognize(
