@@ -1127,6 +1127,15 @@ body {
     font-size: var(--nordic-font-size-sm);
 }
 
+.ocr-hint {
+    margin: 0;
+    padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-primary);
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid var(--nordic-border-color);
+}
+
 .ocr-result-content {
     flex: 1;
     overflow-y: auto;
