@@ -1900,6 +1900,45 @@ function startOCRSelection() {
     showToast('請框選要辨識的文字區域', 'info');
 }
 
+// 偵測文字的主要語言
+function detectDominantLanguage(text) {
+    if (!text || text.length < 5) return 'default';
+
+    // 日文：平假名、片假名
+    const hiragana = (text.match(/[\u3040-\u309F]/g) || []).length;
+    const katakana = (text.match(/[\u30A0-\u30FF]/g) || []).length;
+    const japaneseChars = hiragana + katakana;
+
+    // 韓文：諺文
+    const korean = (text.match(/[\uAC00-\uD7AF\u1100-\u11FF]/g) || []).length;
+
+    // 中文：CJK 漢字（排除日文專用漢字的統計方式）
+    const cjk = (text.match(/[\u4E00-\u9FFF]/g) || []).length;
+
+    // 英文/拉丁字母
+    const latin = (text.match(/[a-zA-Z]/g) || []).length;
+
+    const total = text.length;
+
+    // 如果有日文假名，很可能是日文
+    if (japaneseChars > 3 || japaneseChars / total > 0.05) {
+        return 'japanese';
+    }
+
+    // 如果有韓文字符，很可能是韓文
+    if (korean > 3 || korean / total > 0.05) {
+        return 'korean';
+    }
+
+    // 如果中文字較多
+    if (cjk > latin) {
+        return 'chinese';
+    }
+
+    // 預設使用繁中+英文
+    return 'default';
+}
+
 async function performOCR(region = null) {
     showLoading('正在辨識文字...');
     updateStatus('OCR 處理中...');
@@ -1925,11 +1964,45 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 多語言辨識：優先順序影響辨識準確度
-        // 日文和韓文有獨特字符，放前面可以提高辨識率
-        // jpn_vert = 日文直書, jpn = 日文橫書
-        const languages = 'jpn+jpn_vert+kor+chi_tra+chi_sim+eng';
+        // 第一步：快速偵測語言（使用繁中+英文優先）
+        elements.loadingText.textContent = '偵測文字語言...';
 
+        const quickResult = await Tesseract.recognize(
+            sourceCanvas,
+            'chi_tra+eng',
+            {
+                logger: (m) => {
+                    if (m.status === 'loading language traineddata') {
+                        elements.loadingText.textContent = `載入語言資料...`;
+                    }
+                }
+            }
+        );
+
+        // 分析偵測結果，判斷主要語言
+        const quickText = quickResult.data.text;
+        const detectedLang = detectDominantLanguage(quickText);
+
+        // 根據偵測結果選擇最佳語言組合
+        let languages;
+        switch (detectedLang) {
+            case 'japanese':
+                languages = 'jpn+jpn_vert+eng';  // 日文為主
+                elements.loadingText.textContent = '偵測到日文，重新辨識...';
+                break;
+            case 'korean':
+                languages = 'kor+eng';  // 韓文為主
+                elements.loadingText.textContent = '偵測到韓文，重新辨識...';
+                break;
+            case 'chinese':
+                languages = 'chi_tra+chi_sim+eng';  // 中文為主
+                break;
+            default:
+                // 繁體中文和英文為預設優先
+                languages = 'chi_tra+eng';
+        }
+
+        // 第二步：使用最佳語言組合進行辨識
         const result = await Tesseract.recognize(
             sourceCanvas,
             languages,
@@ -1939,7 +2012,7 @@ async function performOCR(region = null) {
                         const progress = Math.round(m.progress * 100);
                         elements.loadingText.textContent = `辨識中... ${progress}%`;
                     } else if (m.status === 'loading language traineddata') {
-                        elements.loadingText.textContent = `載入語言資料... ${Math.round(m.progress * 100)}%`;
+                        elements.loadingText.textContent = `載入語言資料...`;
                     }
                 }
             }
