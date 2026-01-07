@@ -1969,11 +1969,9 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 每次都從下拉選單讀取語言設定（避免狀態同步問題）
-        let languages = 'chi_tra+jpn+eng'; // 預設值
-        if (elements.ocrLanguageSelect) {
-            languages = elements.ocrLanguageSelect.value;
-        }
+        // 固定使用多語言辨識（繁中+日文+英文）
+        // 這個組合可以處理大多數情況，避免 Tesseract WASM 語言切換錯誤
+        const languages = 'chi_tra+jpn+eng';
         console.log('OCR 使用語言:', languages);
 
         const result = await Tesseract.recognize(
@@ -2441,23 +2439,6 @@ function initEventListeners() {
     elements.btnCopyText.addEventListener('click', copyText);
     elements.btnSaveText.addEventListener('click', saveAsText);
     elements.btnCloseOcrPanel.addEventListener('click', closeOCRPanel);
-
-    // 重新辨識按鈕
-    const btnReocr = document.getElementById('btn-reocr');
-    if (btnReocr) {
-        btnReocr.addEventListener('click', () => {
-            // 直接從下拉選單讀取語言設定
-            const selectedLang = elements.ocrLanguageSelect ? elements.ocrLanguageSelect.value : 'chi_tra+jpn+eng';
-            state.ocrLanguage = selectedLang;
-            console.log('重新辨識，使用語言:', selectedLang);
-
-            if (state.ocrRegion) {
-                performOCR(state.ocrRegion);
-            } else {
-                performOCR(null);
-            }
-        });
-    }
 
     // 濾鏡
     elements.filterGrid.addEventListener('click', (e) => {

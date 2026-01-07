@@ -1104,13 +1104,14 @@ body {
     font-weight: var(--nordic-font-weight-semibold);
 }
 
-.ocr-language-selector {
+.ocr-language-info {
     display: flex;
     align-items: center;
     gap: var(--nordic-spacing-sm);
     padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
     border-bottom: 1px solid var(--nordic-border-color);
     font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-secondary);
 }
 
 .ocr-language-selector label {
