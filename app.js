@@ -1969,9 +1969,12 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 使用用戶選擇的語言，或預設使用多語言（繁中+日文+英文）
-        // 多語言組合可以自動處理大多數情況
-        const languages = state.ocrLanguage || 'chi_tra+jpn+eng';
+        // 每次都從下拉選單讀取語言設定（避免狀態同步問題）
+        let languages = 'chi_tra+jpn+eng'; // 預設值
+        if (elements.ocrLanguageSelect) {
+            languages = elements.ocrLanguageSelect.value;
+        }
+        console.log('OCR 使用語言:', languages);
 
         const result = await Tesseract.recognize(
             sourceCanvas,
@@ -2439,23 +2442,19 @@ function initEventListeners() {
     elements.btnSaveText.addEventListener('click', saveAsText);
     elements.btnCloseOcrPanel.addEventListener('click', closeOCRPanel);
 
-    // OCR 語言選擇
-    if (elements.ocrLanguageSelect) {
-        elements.ocrLanguageSelect.addEventListener('change', (e) => {
-            state.ocrLanguage = e.target.value;
-        });
-    }
-
     // 重新辨識按鈕
     const btnReocr = document.getElementById('btn-reocr');
     if (btnReocr) {
         btnReocr.addEventListener('click', () => {
-            // 使用當前選擇的語言重新辨識同一區域
-            state.ocrLanguage = elements.ocrLanguageSelect.value;
+            // 直接從下拉選單讀取語言設定
+            const selectedLang = elements.ocrLanguageSelect ? elements.ocrLanguageSelect.value : 'chi_tra+jpn+eng';
+            state.ocrLanguage = selectedLang;
+            console.log('重新辨識，使用語言:', selectedLang);
+
             if (state.ocrRegion) {
                 performOCR(state.ocrRegion);
             } else {
-                performOCR(null); // 辨識整張圖片
+                performOCR(null);
             }
         });
     }
