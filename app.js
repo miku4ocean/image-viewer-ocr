@@ -1898,16 +1898,11 @@ function startOCRSelection() {
         elements.ocrRegionOverlay.classList.remove('nordic-hidden');
     }
 
-    // 顯示 OCR 結果面板，讓用戶可以選擇語言
-    elements.ocrResultPanel.classList.remove('nordic-hidden');
-    elements.ocrTextOutput.value = '';
-
-    // 顯示提示
-    const hintEl = document.getElementById('ocr-hint');
-    if (hintEl) hintEl.style.display = 'block';
+    // 隱藏 OCR 結果面板（等辨識完再顯示）
+    elements.ocrResultPanel.classList.add('nordic-hidden');
 
     updateStatus('請在圖片上框選要辨識的區域，或按 Enter 辨識整張圖片');
-    showToast('請先選擇語言，再框選區域', 'info');
+    showToast('請框選要辨識的區域', 'info');
 }
 
 // 偵測文字的主要語言
