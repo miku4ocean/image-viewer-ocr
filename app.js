@@ -1969,9 +1969,9 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 使用全語言辨識（繁中+簡中+日文+韓文+英文）
-        // 一次載入所有語言，避免切換語言導致 WASM 錯誤
-        const languages = 'chi_tra+chi_sim+jpn+kor+eng';
+        // 使用最佳語言組合（繁中+日文+英文）
+        // 測試顯示這個組合準確度最高
+        const languages = 'chi_tra+jpn+eng';
         console.log('OCR 使用語言:', languages);
 
         const result = await Tesseract.recognize(
