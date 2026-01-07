@@ -44,7 +44,7 @@ const state = {
     isSelectingOCRRegion: false,
     ocrRegion: null,
     ocrWords: [],
-    ocrLanguage: 'chi_tra+eng', // 預設繁中+英文
+    ocrLanguage: 'chi_tra+jpn+eng', // 預設多語言（繁中+日文+英文）
     selectedText: '',
 
     // 去背編輯狀態
@@ -1974,9 +1974,9 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 使用繁體中文 + 英文辨識（最常用的組合）
-        // 如需其他語言，可在 OCR 設定中選擇
-        const languages = state.ocrLanguage || 'chi_tra+eng';
+        // 使用用戶選擇的語言，或預設使用多語言（繁中+日文+英文）
+        // 多語言組合可以自動處理大多數情況
+        const languages = state.ocrLanguage || 'chi_tra+jpn+eng';
 
         const result = await Tesseract.recognize(
             sourceCanvas,
@@ -2448,7 +2448,20 @@ function initEventListeners() {
     if (elements.ocrLanguageSelect) {
         elements.ocrLanguageSelect.addEventListener('change', (e) => {
             state.ocrLanguage = e.target.value;
-            showToast(`OCR 語言已切換`);
+        });
+    }
+
+    // 重新辨識按鈕
+    const btnReocr = document.getElementById('btn-reocr');
+    if (btnReocr) {
+        btnReocr.addEventListener('click', () => {
+            // 使用當前選擇的語言重新辨識同一區域
+            state.ocrLanguage = elements.ocrLanguageSelect.value;
+            if (state.ocrRegion) {
+                performOCR(state.ocrRegion);
+            } else {
+                performOCR(null); // 辨識整張圖片
+            }
         });
     }
 

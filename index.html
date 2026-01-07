@@ -359,15 +359,15 @@
                     <div class="ocr-language-selector">
                         <label>語言：</label>
                         <select id="ocr-language-select">
+                            <option value="chi_tra+jpn+eng" selected>自動（繁中+日文+英）</option>
                             <option value="chi_tra+eng">繁體中文 + 英文</option>
                             <option value="chi_sim+eng">簡體中文 + 英文</option>
-                            <option value="jpn">日文（含漢字）</option>
-                            <option value="kor">韓文</option>
+                            <option value="jpn">純日文（含漢字）</option>
+                            <option value="kor">純韓文</option>
                             <option value="eng">純英文</option>
-                            <option value="chi_tra+chi_sim+jpn+eng">多語言混合</option>
                         </select>
+                        <button class="nordic-btn nordic-btn-primary nordic-btn-sm" id="btn-reocr">🔄 重新辨識</button>
                     </div>
-                    <p class="ocr-hint" id="ocr-hint">請先選擇語言，再框選要辨識的區域</p>
                     <div class="ocr-result-content nordic-scrollbar">
                         <textarea class="ocr-text-output" id="ocr-text-output" placeholder="辨識的文字將顯示在這裡..."></textarea>
                     </div>
