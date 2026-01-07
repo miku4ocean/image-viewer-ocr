@@ -396,9 +396,14 @@ function closeImage() {
     elements.editorContainer.classList.add('nordic-hidden');
     elements.welcomeScreen.classList.remove('nordic-hidden');
 
-    // 關閉 OCR 相關面板
-    closeOCRPanel();
-    hideOCRLanguageModal();
+    // 關閉 OCR 相關面板（直接操作 DOM）
+    if (elements.ocrResultPanel) {
+        elements.ocrResultPanel.classList.add('nordic-hidden');
+    }
+    const ocrLangModal = document.getElementById('ocr-lang-modal');
+    if (ocrLangModal) {
+        ocrLangModal.classList.add('nordic-hidden');
+    }
 
     // 更新 UI
     updateToolbarState(false);
