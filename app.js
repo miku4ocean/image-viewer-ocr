@@ -44,6 +44,7 @@ const state = {
     isSelectingOCRRegion: false,
     ocrRegion: null,
     ocrWords: [],
+    ocrLanguage: 'chi_tra+eng', // 預設繁中+英文
     selectedText: '',
 
     // 去背編輯狀態
@@ -133,6 +134,7 @@ const elements = {
     ocrTextLayer: document.getElementById('ocr-text-layer'),
     ocrResultPanel: document.getElementById('ocr-result-panel'),
     ocrTextOutput: document.getElementById('ocr-text-output'),
+    ocrLanguageSelect: document.getElementById('ocr-language-select'),
     btnCopyText: document.getElementById('btn-copy-text'),
     btnSaveText: document.getElementById('btn-save-text'),
     btnCloseOcrPanel: document.getElementById('btn-close-ocr-panel'),
@@ -1964,45 +1966,10 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 第一步：快速偵測語言（使用繁中+英文優先）
-        elements.loadingText.textContent = '偵測文字語言...';
+        // 使用繁體中文 + 英文辨識（最常用的組合）
+        // 如需其他語言，可在 OCR 設定中選擇
+        const languages = state.ocrLanguage || 'chi_tra+eng';
 
-        const quickResult = await Tesseract.recognize(
-            sourceCanvas,
-            'chi_tra+eng',
-            {
-                logger: (m) => {
-                    if (m.status === 'loading language traineddata') {
-                        elements.loadingText.textContent = `載入語言資料...`;
-                    }
-                }
-            }
-        );
-
-        // 分析偵測結果，判斷主要語言
-        const quickText = quickResult.data.text;
-        const detectedLang = detectDominantLanguage(quickText);
-
-        // 根據偵測結果選擇最佳語言組合
-        let languages;
-        switch (detectedLang) {
-            case 'japanese':
-                languages = 'jpn+jpn_vert+eng';  // 日文為主
-                elements.loadingText.textContent = '偵測到日文，重新辨識...';
-                break;
-            case 'korean':
-                languages = 'kor+eng';  // 韓文為主
-                elements.loadingText.textContent = '偵測到韓文，重新辨識...';
-                break;
-            case 'chinese':
-                languages = 'chi_tra+chi_sim+eng';  // 中文為主
-                break;
-            default:
-                // 繁體中文和英文為預設優先
-                languages = 'chi_tra+eng';
-        }
-
-        // 第二步：使用最佳語言組合進行辨識
         const result = await Tesseract.recognize(
             sourceCanvas,
             languages,
@@ -2464,6 +2431,14 @@ function initEventListeners() {
     elements.btnCopyText.addEventListener('click', copyText);
     elements.btnSaveText.addEventListener('click', saveAsText);
     elements.btnCloseOcrPanel.addEventListener('click', closeOCRPanel);
+
+    // OCR 語言選擇
+    if (elements.ocrLanguageSelect) {
+        elements.ocrLanguageSelect.addEventListener('change', (e) => {
+            state.ocrLanguage = e.target.value;
+            showToast(`OCR 語言已切換`);
+        });
+    }
 
     // 濾鏡
     elements.filterGrid.addEventListener('click', (e) => {

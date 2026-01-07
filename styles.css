@@ -1104,6 +1104,29 @@ body {
     font-weight: var(--nordic-font-weight-semibold);
 }
 
+.ocr-language-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
+    border-bottom: 1px solid var(--nordic-border-color);
+    font-size: var(--nordic-font-size-sm);
+}
+
+.ocr-language-selector label {
+    color: var(--nordic-text-secondary);
+}
+
+.ocr-language-selector select {
+    flex: 1;
+    padding: var(--nordic-spacing-xs) var(--nordic-spacing-sm);
+    background: var(--nordic-bg-tertiary);
+    border: 1px solid var(--nordic-border-color);
+    border-radius: var(--nordic-radius-sm);
+    color: var(--nordic-text-primary);
+    font-size: var(--nordic-font-size-sm);
+}
+
 .ocr-result-content {
     flex: 1;
     overflow-y: auto;
