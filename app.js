@@ -1905,6 +1905,22 @@ function startOCRSelection() {
     showToast('請框選要辨識的區域', 'info');
 }
 
+// 取消 OCR 選取
+function cancelOCRSelection() {
+    state.isSelectingOCRRegion = false;
+    state.ocrRegion = null;
+
+    if (elements.ocrRegionBox) {
+        elements.ocrRegionBox.style.display = 'none';
+    }
+    if (elements.ocrRegionOverlay) {
+        elements.ocrRegionOverlay.classList.add('nordic-hidden');
+    }
+
+    updateStatus('就緒');
+}
+
+
 // 偵測文字的主要語言
 function detectDominantLanguage(text) {
     if (!text || text.length < 5) return 'default';
@@ -1969,9 +1985,8 @@ async function performOCR(region = null) {
             sourceCanvas = elements.imageCanvas;
         }
 
-        // 最佳語言組合（繁中+日文+英文）
-        // 加入 chi_sim 會降低日文準確度，故不使用
-        const languages = 'chi_tra+jpn+eng';
+        // 使用用戶選擇的語言組合
+        const languages = getSelectedOCRLanguages();
         console.log('OCR 使用語言:', languages);
 
         const result = await Tesseract.recognize(
@@ -2440,6 +2455,45 @@ function initEventListeners() {
     elements.btnSaveText.addEventListener('click', saveAsText);
     elements.btnCloseOcrPanel.addEventListener('click', closeOCRPanel);
 
+    // OCR 語言選擇彈窗
+    const btnCloseLangModal = document.getElementById('btn-close-lang-modal');
+    const btnCancelOcr = document.getElementById('btn-cancel-ocr');
+    const btnStartOcr = document.getElementById('btn-start-ocr');
+
+    if (btnCloseLangModal) {
+        btnCloseLangModal.addEventListener('click', () => {
+            hideOCRLanguageModal();
+            cancelOCRSelection();
+        });
+    }
+
+    if (btnCancelOcr) {
+        btnCancelOcr.addEventListener('click', () => {
+            hideOCRLanguageModal();
+            cancelOCRSelection();
+        });
+    }
+
+    if (btnStartOcr) {
+        btnStartOcr.addEventListener('click', () => {
+            hideOCRLanguageModal();
+            // 使用選取的區域進行 OCR
+            if (state.ocrRegion) {
+                performOCR(state.ocrRegion);
+            } else {
+                performOCR(null);
+            }
+            // 隱藏選取框
+            if (elements.ocrRegionBox) {
+                elements.ocrRegionBox.style.display = 'none';
+            }
+            if (elements.ocrRegionOverlay) {
+                elements.ocrRegionOverlay.classList.add('nordic-hidden');
+            }
+            state.isSelectingOCRRegion = false;
+        });
+    }
+
     // 濾鏡
     elements.filterGrid.addEventListener('click', (e) => {
         const filterItem = e.target.closest('.filter-item');
@@ -2769,7 +2823,8 @@ function initOCRRegionHandlers() {
 
         // 如果選取區域太小，提示用戶
         if (state.ocrRegion && state.ocrRegion.width > 20 && state.ocrRegion.height > 20) {
-            showToast('區域已選取，按 Enter 開始辨識', 'info');
+            // 顯示語言選擇彈窗
+            showOCRLanguageModal();
         } else {
             state.ocrRegion = null;
             if (elements.ocrRegionBox) {
@@ -2777,6 +2832,29 @@ function initOCRRegionHandlers() {
             }
         }
     });
+}
+
+// 顯示 OCR 語言選擇彈窗
+function showOCRLanguageModal() {
+    const modal = document.getElementById('ocr-lang-modal');
+    if (modal) {
+        modal.classList.remove('nordic-hidden');
+    }
+}
+
+// 隱藏 OCR 語言選擇彈窗
+function hideOCRLanguageModal() {
+    const modal = document.getElementById('ocr-lang-modal');
+    if (modal) {
+        modal.classList.add('nordic-hidden');
+    }
+}
+
+// 取得使用者選擇的語言
+function getSelectedOCRLanguages() {
+    const checkboxes = document.querySelectorAll('input[name="ocr-lang"]:checked');
+    const languages = Array.from(checkboxes).map(cb => cb.value);
+    return languages.length > 0 ? languages.join('+') : 'chi_tra+eng';
 }
 
 // 畫布導航和拖曳功能

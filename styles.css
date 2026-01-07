@@ -1373,3 +1373,98 @@ body {
 .nordic-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--nordic-text-muted);
 }
+
+/* OCR 語言選擇彈窗 */
+.ocr-lang-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.ocr-lang-modal-content {
+    background: var(--nordic-bg-primary);
+    border-radius: var(--nordic-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 400px;
+    overflow: hidden;
+}
+
+.ocr-lang-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--nordic-spacing-md);
+    border-bottom: 1px solid var(--nordic-border-color);
+}
+
+.ocr-lang-modal-header h3 {
+    margin: 0;
+    font-size: var(--nordic-font-size-lg);
+}
+
+.ocr-lang-modal-body {
+    padding: var(--nordic-spacing-md);
+}
+
+.ocr-lang-hint {
+    margin: 0 0 var(--nordic-spacing-md);
+    color: var(--nordic-text-secondary);
+    font-size: var(--nordic-font-size-sm);
+}
+
+.ocr-lang-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nordic-spacing-sm);
+}
+
+.ocr-lang-option {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-sm) var(--nordic-spacing-md);
+    background: var(--nordic-bg-secondary);
+    border-radius: var(--nordic-radius-md);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ocr-lang-option:hover {
+    background: var(--nordic-bg-tertiary);
+}
+
+.ocr-lang-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--nordic-primary);
+}
+
+.ocr-lang-option span {
+    font-size: var(--nordic-font-size-base);
+}
+
+.ocr-lang-note {
+    margin: var(--nordic-spacing-md) 0 0;
+    padding: var(--nordic-spacing-sm);
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: var(--nordic-radius-sm);
+    color: var(--nordic-warning);
+    font-size: var(--nordic-font-size-xs);
+}
+
+.ocr-lang-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-md);
+    border-top: 1px solid var(--nordic-border-color);
+}

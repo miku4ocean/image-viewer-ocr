@@ -356,8 +356,8 @@
                         <button class="nordic-btn nordic-btn-secondary nordic-btn-sm"
                             id="btn-close-ocr-panel">✕</button>
                     </div>
-                    <div class="ocr-language-info">
-                        <span>🌐 多語言辨識（繁中／日文／英文）</span>
+                    <div class="ocr-language-info" id="ocr-language-info">
+                        <span>🌐 使用選定語言辨識</span>
                     </div>
                     <div class="ocr-result-content nordic-scrollbar">
                         <textarea class="ocr-text-output" id="ocr-text-output" placeholder="辨識的文字將顯示在這裡..."></textarea>
@@ -583,6 +583,46 @@
         <div class="loading-content">
             <div class="nordic-spinner nordic-spinner-lg"></div>
             <p class="loading-text" id="loading-text">處理中...</p>
+        </div>
+    </div>
+
+    <!-- OCR 語言選擇彈窗 -->
+    <div class="ocr-lang-modal nordic-hidden" id="ocr-lang-modal">
+        <div class="ocr-lang-modal-content">
+            <div class="ocr-lang-modal-header">
+                <h3>🌐 選擇辨識語言</h3>
+                <button class="nordic-btn nordic-btn-secondary nordic-btn-sm" id="btn-close-lang-modal">✕</button>
+            </div>
+            <div class="ocr-lang-modal-body">
+                <p class="ocr-lang-hint">請勾選要辨識的語言，然後點擊「開始辨識」</p>
+                <div class="ocr-lang-options">
+                    <label class="ocr-lang-option">
+                        <input type="checkbox" name="ocr-lang" value="chi_tra" checked>
+                        <span>繁體中文</span>
+                    </label>
+                    <label class="ocr-lang-option">
+                        <input type="checkbox" name="ocr-lang" value="chi_sim">
+                        <span>簡體中文</span>
+                    </label>
+                    <label class="ocr-lang-option">
+                        <input type="checkbox" name="ocr-lang" value="jpn">
+                        <span>日文（含漢字）</span>
+                    </label>
+                    <label class="ocr-lang-option">
+                        <input type="checkbox" name="ocr-lang" value="kor">
+                        <span>韓文</span>
+                    </label>
+                    <label class="ocr-lang-option">
+                        <input type="checkbox" name="ocr-lang" value="eng" checked>
+                        <span>英文</span>
+                    </label>
+                </div>
+                <p class="ocr-lang-note">💡 提示：選擇較少的語言可提高辨識準確度</p>
+            </div>
+            <div class="ocr-lang-modal-footer">
+                <button class="nordic-btn nordic-btn-secondary" id="btn-cancel-ocr">取消</button>
+                <button class="nordic-btn nordic-btn-primary" id="btn-start-ocr">🔍 開始辨識</button>
+            </div>
         </div>
     </div>
 
