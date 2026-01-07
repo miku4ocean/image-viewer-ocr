@@ -32,7 +32,7 @@ image-viewer-ocr/
 │   ├── icon.png
 │   └── icon.icns
 ├── releases/               # Mac 安裝檔
-│   └── Image Viewer OCR-1.2.3-arm64.dmg
+│   └── Image Viewer OCR-1.4.0-arm64.dmg
 └── dist/                   # 打包輸出（自動生成）
 ```
 
@@ -75,10 +75,11 @@ image-viewer-ocr/
 - **狀態列顯示 DPI**
 
 ### 📝 OCR 文字辨識
-- **支援多語言**：繁體中文、簡體中文、英文、日文
-- 框選區域辨識
+- **語言選擇彈窗**：框選區域後可選擇辨識語言
+- **支援多語言**：繁體中文、簡體中文、日文、韓文、英文
+- **智慧組合**：選擇較少語言可提高準確度
 - 一鍵複製文字
-- 高精度辨識引擎
+- 儲存為 TXT 文字檔
 
 ### 🎭 AI 智慧去背
 - **AI 自動選取主體**：一鍵偵測人物/物體輪廓
@@ -97,7 +98,7 @@ image-viewer-ocr/
 | **🌐 網頁版（線上使用）** | https://miku4ocean.github.io/image-viewer-ocr/ |
 | **📂 GitHub 原始碼** | https://github.com/miku4ocean/image-viewer-ocr |
 | **📥 Mac 安裝檔下載** | https://github.com/miku4ocean/image-viewer-ocr/releases |
-| **💾 本地安裝檔** | `releases/Image Viewer OCR-1.2.3-arm64.dmg` |
+| **💾 本地安裝檔** | `releases/Image Viewer OCR-1.4.0-arm64.dmg` |
 
 ---
 
@@ -126,7 +127,7 @@ image-viewer-ocr/
 4. 將 **Image Viewer OCR** 拖曳到 **Applications** 資料夾
 
 #### 方式二：從本地資料夾安裝
-1. 安裝檔位置：`releases/Image Viewer OCR-1.2.3-arm64.dmg`
+1. 安裝檔位置：`releases/Image Viewer OCR-1.4.0-arm64.dmg`
 2. 雙擊開啟 DMG 檔案
 3. 將 **Image Viewer OCR** 拖曳到 **Applications** 資料夾
 4. 從 Launchpad 或 Applications 資料夾啟動
@@ -194,8 +195,13 @@ image-viewer-ocr/
 1. 開啟包含文字的圖片
 2. 點擊「📝 文字辨識」按鈕
 3. 在圖片上框選要辨識的區域
-4. 等待辨識完成
-5. 點擊「複製」將文字複製到剪貼簿
+4. 跳出語言選擇彈窗，勾選需要的語言：
+   - **日文文章**：勾選「日文」+「英文」
+   - **簡體網頁**：勾選「簡體中文」+「英文」
+   - **台灣文章**：勾選「繁體中文」+「英文」
+5. 點擊「開始辨識」
+6. 等待辨識完成
+7. 點擊「複製文字」或「儲存為 TXT」
 
 ---
 
@@ -246,6 +252,12 @@ npm run build:dmg
 ---
 
 ## 版本歷史
+
+### v1.4.0 (2026-01-07)
+- 新增：OCR 語言選擇彈窗
+- 支援：繁體中文、簡體中文、日文、韓文、英文
+- 優化：選擇較少語言可提高準確度
+- 修復：關閉檔案時自動關閉 OCR 面板
 
 ### v1.2.3 (2026-01-05)
 - 修復：Mac 版儲存對話框重複問題
