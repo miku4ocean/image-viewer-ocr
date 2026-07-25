@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — 尺寸調整對話框</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.mock-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+.wordmark{font-family:var(--serif);font-size:19px;}
+.wordmark .dot{color:var(--accent);}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.crumb b{color:var(--accent);}
+.badge-row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.badge{border:1px solid var(--line);border-radius:5px;padding:2px 8px;}
+.badge.go{color:var(--accent);border-color:var(--accent);}
+.wire-banner{background:var(--accent-soft);border-bottom:1px solid var(--line);padding:8px 22px;font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.05em;}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:7px 14px;font-size:12.5px;background:var(--paper);color:var(--ink);cursor:pointer;}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+footer.mock-foot{padding:10px 22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+a.back{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;}
+
+.stage{height:640px;background:#EFEDE6;position:relative;display:flex;align-items:center;justify-content:center;}
+.modal{width:420px;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.18);}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600;}
+.modal-body{padding:16px 18px;}
+.section-title{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-size:10px;margin:0 0 8px;}
+.quick-scale{display:flex;gap:8px;margin-bottom:14px;}
+.quick-scale .btn{flex:1;justify-content:center;padding:6px;}
+hr{border:none;border-top:1px solid var(--line);margin:14px 0;}
+.dim-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.field{flex:1;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;}
+.field input,.field select{width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;background:var(--paper);color:var(--ink);}
+.chain{width:28px;text-align:center;color:var(--accent);}
+.checkline{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:4px;}
+.hint{font-size:11px;color:var(--muted);margin-top:4px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+  <div class="mock-topbar">
+    <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+    <div class="crumb">前台 · <b>尺寸調整對話框</b>（Modal）</div>
+    <div class="badge-row"><span class="badge go">▸ mockup</span><span class="badge">index.html #resize-modal</span></div>
+  </div>
+  <div class="wire-banner">MOCKUP — 線框稿。彈出於編輯畫面之上；資料來源：index.html #resize-modal（快速縮放／寬高／放大品質／DPI）</div>
+
+  <div class="stage card">
+    <div class="modal">
+      <div class="modal-head"><span>📐 調整尺寸</span><span style="color:var(--muted);cursor:pointer;">✕</span></div>
+      <div class="modal-body">
+        <div class="section-title">快速縮放</div>
+        <div class="quick-scale">
+          <button class="btn">0.5X</button><button class="btn primary">1X</button><button class="btn">2X</button><button class="btn">4X</button>
+        </div>
+        <hr>
+        <div class="dim-row">
+          <div class="field"><label>寬度 (px)</label><input value="3024"></div>
+          <div class="chain">🔗</div>
+          <div class="field"><label>高度 (px)</label><input value="4032"></div>
+        </div>
+        <div class="checkline"><input type="checkbox" checked disabled> 維持比例</div>
+        <hr>
+        <div class="section-title">放大品質</div>
+        <div class="field">
+          <select><option>標準（快速）</option><option selected>平滑（適合照片）</option><option>銳利（適合文字/線條）</option></select>
+        </div>
+        <div class="hint">放大時建議選擇「銳利」以保持文字清晰</div>
+        <hr>
+        <div class="section-title">解析度 (DPI)</div>
+        <div class="field">
+          <select><option>72 DPI（螢幕）</option><option>96 DPI（Windows）</option><option>150 DPI（中等）</option><option selected>300 DPI（列印）</option><option>600 DPI（高品質）</option></select>
+        </div>
+        <div class="hint">DPI 設定會影響列印時的實際尺寸</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn">取消</button>
+        <button class="btn primary">套用</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mock-foot">
+    <span>image-viewer-ocr / mockup / front-resize.html</span>
+    <a class="back" href="index.html">← 回總覽</a>
+  </footer>
+</body>
+</html>

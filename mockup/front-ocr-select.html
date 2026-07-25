@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — OCR 框選區域</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.mock-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+.wordmark{font-family:var(--serif);font-size:19px;}
+.wordmark .dot{color:var(--accent);}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.crumb b{color:var(--accent);}
+.badge-row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.badge{border:1px solid var(--line);border-radius:5px;padding:2px 8px;}
+.badge.go{color:var(--accent);border-color:var(--accent);}
+.wire-banner{background:var(--accent-soft);border-bottom:1px solid var(--line);padding:8px 22px;font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.05em;}
+footer.mock-foot{padding:10px 22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+a.back{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;}
+
+.shell{height:660px;display:flex;flex-direction:column;}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);}
+.tool-icon{width:auto;padding:0 10px;height:30px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);}
+.tool-icon.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.canvas{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:#EFEDE6;}
+.image-ph{width:70%;height:78%;position:relative;background:linear-gradient(135deg,#DCE3EE 0%,#F3D9C4 100%);}
+.region{position:absolute;top:30%;left:18%;width:50%;height:14%;border:2px solid var(--accent);background:rgba(46,75,143,.12);}
+.region:after{content:"框選範圍";position:absolute;top:-22px;left:0;font-family:var(--mono);font-size:10px;color:var(--accent);}
+.crosshair{position:absolute;top:0;bottom:0;left:62%;width:1px;background:rgba(46,75,143,.4);}
+.crosshair2{position:absolute;left:0;right:0;top:44%;height:1px;background:rgba(46,75,143,.4);}
+.hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:20px;}
+.footbar{padding:6px 18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+  <div class="mock-topbar">
+    <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+    <div class="crumb">前台 · <b>OCR 框選文字區域</b>（步驟 1／3）</div>
+    <div class="badge-row"><span class="badge go">▸ mockup</span><span class="badge">index.html #ocr-region-overlay</span></div>
+  </div>
+  <div class="wire-banner">MOCKUP — 線框稿。使用者在圖片上拖曳框出要辨識的文字區域，接著彈出語言選擇（見 front-ocr-language.html）</div>
+
+  <div class="shell card">
+    <div class="toolbar">
+      <div class="tool-icon active">📝 文字辨識模式：請在圖片上框選文字區域</div>
+    </div>
+    <div class="canvas">
+      <div class="image-ph">
+        <div class="crosshair"></div><div class="crosshair2"></div>
+        <div class="region"></div>
+      </div>
+      <div class="hint">拖曳框選要辨識的文字區域</div>
+    </div>
+    <div class="footbar">
+      <span>OCR 選取中 — 放開滑鼠後將彈出語言選擇視窗</span>
+      <span>photo.jpg</span>
+    </div>
+  </div>
+
+  <footer class="mock-foot">
+    <span>image-viewer-ocr / mockup / front-ocr-select.html</span>
+    <a class="back" href="index.html">← 回總覽</a>
+  </footer>
+</body>
+</html>

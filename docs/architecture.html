@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>image-viewer-ocr — 系統架構圖</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); padding:40px 24px 80px;
+}
+.page{max-width:1240px;margin:0 auto;}
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:18px;}
+.wordmark{font-family:var(--serif);font-size:30px;}
+.wordmark .dot{color:var(--accent);}
+.masthead-sub{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;}
+.buildlog{font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.9;text-align:right;}
+.buildlog .ok{color:var(--ok);}
+.buildlog .go{color:var(--accent);}
+.diagram-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:10px;
+  padding:8px; overflow-x:auto;
+}
+.diagram-card svg{display:block; width:100%; height:auto; min-width:960px;}
+.legend{
+  display:flex; gap:28px; flex-wrap:wrap; margin-top:22px;
+  font-size:12.5px; color:var(--muted);
+}
+.legend-item{display:flex; align-items:center; gap:8px;}
+.swatch{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);display:inline-block;}
+.swatch.box{background:var(--paper);}
+.swatch.keystone{background:var(--accent-soft); border:2px solid var(--accent);}
+.section-title{
+  font-family:var(--mono); text-transform:uppercase; letter-spacing:.1em;
+  color:var(--muted); font-size:11px; margin:36px 0 10px;
+}
+.keystone-note{
+  background:var(--accent-soft); border:1px solid var(--accent); border-radius:9px;
+  padding:16px 20px; font-size:13.5px; line-height:1.7; color:var(--ink);
+}
+.keystone-note b{color:var(--accent);}
+footer{margin-top:48px; padding-top:16px; border-top:1px solid var(--line); font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;}
+a{color:var(--accent);}
+@media (prefers-color-scheme: dark){
+  body{background:#14161A; color:#ECEAE3;}
+  .diagram-card, .masthead{border-color:#2B2E33;}
+  .diagram-card{background:#191B1F;}
+  .diagram-card svg rect[fill="#FBFAF7"]:first-child{fill:#191B1F;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div>
+      <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+      <div class="masthead-sub">系統架構圖 · docs/architecture.html</div>
+    </div>
+    <div class="buildlog">
+      <div><span class="go">▸</span> 前端 SPA，無伺服器後端</div>
+      <div><span class="ok">✓</span> OCR／去背完全本機執行</div>
+      <div><span class="ok">✓</span> Electron／瀏覽器共用同一份前端程式碼</div>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 840" font-family="ui-sans-serif,system-ui,'Segoe UI',Roboto,'Noto Sans TC',sans-serif">
+  <title>image-viewer-ocr 系統架構圖</title>
+  <defs>
+    <style>
+      .paper{fill:#FBFAF7;}
+      .box{fill:#FBFAF7;stroke:#E7E3DA;stroke-width:1;}
+      .t{font-size:12.5px;font-weight:600;fill:#181B20;}
+      .d{font-size:9.3px;fill:#6B7178;}
+      .lbl{font-family:ui-monospace,'SF Mono','Cascadia Code',Menlo,monospace;font-size:11px;letter-spacing:.06em;fill:#6B7178;}
+      .lbl-accent{font-family:ui-monospace,'SF Mono','Cascadia Code',Menlo,monospace;font-size:11.5px;letter-spacing:.06em;fill:#2E4B8F;font-weight:700;}
+      .wordmark2{font-family:"Iowan Old Style",Georgia,"Times New Roman",serif;font-size:28px;fill:#181B20;}
+      .sub{font-family:ui-monospace,'SF Mono','Cascadia Code',Menlo,monospace;font-size:10.5px;letter-spacing:.08em;fill:#6B7178;}
+      .status{font-family:ui-monospace,'SF Mono','Cascadia Code',Menlo,monospace;font-size:10.5px;fill:#6B7178;}
+      .note{font-size:10.5px;fill:#6B7178;font-style:italic;}
+      .divider{stroke:#E7E3DA;stroke-width:1;}
+      .divider-dash{stroke:#E7E3DA;stroke-width:1;stroke-dasharray:4 3;}
+      .flow{fill:#2E4B8F;}
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="840" fill="#FBFAF7"/>
+
+  <text x="40" y="50" class="wordmark2">ImageViewerOCR<tspan fill="#2E4B8F">.</tspan></text>
+  <text x="40" y="72" class="sub">系統架構圖 · ELECTRON 桌面 APP ＋ 靜態網頁 SPA（無伺服器後端）</text>
+  <text x="1160" y="34" text-anchor="end" class="status">▸ 前端 SPA，無後端 API</text>
+  <text x="1160" y="50" text-anchor="end" class="status">✓ OCR／去背完全本機執行</text>
+  <text x="1160" y="66" text-anchor="end" class="status">✓ Electron／瀏覽器共用同一份程式碼</text>
+
+  <line x1="40" y1="90" x2="1160" y2="90" class="divider"/>
+
+  <text x="40" y="112" class="lbl">01 · 使用者介面層（UI）— index.html ・ styles.css ・ nordic-design-system.css</text>
+
+  <g>
+    <rect class="box" x="40" y="124" width="362" height="54" rx="8"/>
+    <text x="52" y="145" class="t">頂部工具列</text>
+    <text x="52" y="159" class="d">開啟・存檔・復原重做・裁切・尺寸</text>
+    <text x="52" y="171" class="d">去背・OCR・設定</text>
+  </g>
+  <g>
+    <rect class="box" x="418" y="124" width="362" height="54" rx="8"/>
+    <text x="430" y="145" class="t">左側濾鏡側欄</text>
+    <text x="430" y="159" class="d">24 種濾鏡（含原圖），即時預覽套用</text>
+  </g>
+  <g>
+    <rect class="box" x="796" y="124" width="362" height="54" rx="8"/>
+    <text x="808" y="145" class="t">中央畫布區 canvas-area</text>
+    <text x="808" y="159" class="d">歡迎畫面／編輯器／裁切・OCR・去背疊層</text>
+  </g>
+
+  <g>
+    <rect class="box" x="40" y="190" width="362" height="54" rx="8"/>
+    <text x="52" y="211" class="t">右側調整側欄</text>
+    <text x="52" y="225" class="d">9 項參數滑桿：曝光・對比・亮部・陰影</text>
+    <text x="52" y="237" class="d">飽和度・色溫・色調・褐色調・清晰度</text>
+  </g>
+  <g>
+    <rect class="box" x="418" y="190" width="362" height="54" rx="8"/>
+    <text x="430" y="211" class="t">彈出視窗群</text>
+    <text x="430" y="225" class="d">尺寸調整・OCR語言選擇・去背工具列</text>
+    <text x="430" y="237" class="d">Loading 遮罩・Toast 通知</text>
+  </g>
+  <g>
+    <rect class="box" x="796" y="190" width="362" height="54" rx="8"/>
+    <text x="808" y="211" class="t">底部狀態列</text>
+    <text x="808" y="225" class="d">檔名・尺寸・DPI・縮放百分比</text>
+  </g>
+
+  <polygon class="flow" points="596,250 604,250 600,262"/>
+  <line x1="600" y1="244" x2="600" y2="250" class="divider"/>
+  <line x1="40" y1="264" x2="1160" y2="264" class="divider"/>
+
+  <text x="40" y="286" class="lbl">02 · 應用邏輯層 — app.js（3,262 行，單一 state 物件驅動）</text>
+
+  <g><rect class="box" x="40" y="298" width="211" height="54" rx="8"/>
+    <text x="52" y="319" class="t">濾鏡／調整運算</text>
+    <text x="52" y="333" class="d">24濾鏡＋9參數</text>
+    <text x="52" y="345" class="d">Canvas 像素運算</text></g>
+  <g><rect class="box" x="267" y="298" width="211" height="54" rx="8"/>
+    <text x="279" y="319" class="t">裁切／旋轉／翻轉</text>
+    <text x="279" y="333" class="d">邊界限制・90°旋轉</text>
+    <text x="279" y="345" class="d">水平垂直翻轉</text></g>
+  <g><rect class="box" x="494" y="298" width="211" height="54" rx="8"/>
+    <text x="506" y="319" class="t">Undo/Redo 歷史</text>
+    <text x="506" y="333" class="d">最多 20 步</text></g>
+  <g><rect class="box" x="721" y="298" width="211" height="54" rx="8"/>
+    <text x="733" y="319" class="t">OCR 流程控制</text>
+    <text x="733" y="333" class="d">框選→語言選擇</text>
+    <text x="733" y="345" class="d">→辨識→結果面板</text></g>
+  <g><rect class="box" x="948" y="298" width="211" height="54" rx="8"/>
+    <text x="960" y="319" class="t">去背遮罩編輯</text>
+    <text x="960" y="333" class="d">筆刷／魔術棒</text>
+    <text x="960" y="345" class="d">歷史最多 30 步</text></g>
+
+  <polygon class="flow" points="596,358 604,358 600,370"/>
+  <line x1="600" y1="352" x2="600" y2="358" class="divider"/>
+  <line x1="40" y1="372" x2="1160" y2="372" class="divider"/>
+
+  <text x="40" y="394" class="lbl">03 · 瀏覽器 WEB API 層</text>
+
+  <g><rect class="box" x="40" y="406" width="268" height="54" rx="8"/>
+    <text x="52" y="427" class="t">Canvas 2D API</text>
+    <text x="52" y="441" class="d">像素讀寫，濾鏡／調整運算基礎</text></g>
+  <g><rect class="box" x="324" y="406" width="268" height="54" rx="8"/>
+    <text x="336" y="427" class="t">File API</text>
+    <text x="336" y="441" class="d">開檔・拖曳圖片</text></g>
+  <g><rect class="box" x="608" y="406" width="268" height="54" rx="8"/>
+    <text x="620" y="427" class="t">Blob + &lt;a download&gt;</text>
+    <text x="620" y="441" class="d">存檔 PNG／JPG／WebP／TXT</text></g>
+  <g><rect class="box" x="892" y="406" width="268" height="54" rx="8"/>
+    <text x="904" y="427" class="t">dynamic import()</text>
+    <text x="904" y="441" class="d">執行期載入去背模組</text></g>
+
+  <polygon class="flow" points="596,466 604,466 600,478"/>
+  <line x1="600" y1="460" x2="600" y2="466" class="divider"/>
+  <line x1="40" y1="480" x2="1160" y2="480" class="divider"/>
+
+  <rect x="24" y="482" width="1152" height="170" rx="16" fill="#EAEEF7" stroke="#2E4B8F" stroke-width="2.5"/>
+  <text x="48" y="506" class="lbl-accent">04 · 本機 AI／OCR 引擎 ── ★ 關鍵設計決定（KEYSTONE）</text>
+
+  <g><rect class="box" x="40" y="520" width="552" height="54" rx="8"/>
+    <text x="52" y="541" class="t">Tesseract.js</text>
+    <text x="52" y="555" class="d">CDN &lt;script&gt; 標籤載入，OCR 辨識引擎（繁中／簡中／日／韓／英）</text></g>
+  <g><rect class="box" x="608" y="520" width="552" height="54" rx="8"/>
+    <text x="620" y="541" class="t">@imgly/background-removal</text>
+    <text x="620" y="555" class="d">esm.sh 動態 import()，AI 去背模型</text></g>
+
+  <text x="40" y="598" class="note">🔒 圖片位元組不上傳伺服器：函式庫程式碼／模型透過 CDN 下載一次（首次使用），</text>
+  <text x="40" y="614" class="note">但實際的文字辨識與去背運算全部在本機（瀏覽器或 Electron Renderer 內）執行。</text>
+
+  <line x1="40" y1="672" x2="1160" y2="672" class="divider-dash"/>
+
+  <text x="40" y="694" class="lbl">05 · 桌面殼層／部署形態（此層是外層容器，非資料流下一步）</text>
+
+  <g><rect class="box" x="40" y="706" width="362" height="54" rx="8"/>
+    <text x="52" y="727" class="t">Electron main process</text>
+    <text x="52" y="741" class="d">BrowserWindow</text>
+    <text x="52" y="753" class="d">nodeIntegration:false／contextIsolation:true</text></g>
+  <g><rect class="box" x="418" y="706" width="362" height="54" rx="8"/>
+    <text x="430" y="727" class="t">選單 → executeJavaScript</text>
+    <text x="430" y="741" class="d">選單項目直接呼叫頁面內函式</text>
+    <text x="430" y="753" class="d">（非 ipcMain／preload 橋接）</text></g>
+  <g><rect class="box" x="796" y="706" width="362" height="54" rx="8"/>
+    <text x="808" y="727" class="t">npm run serve ／ GitHub Pages</text>
+    <text x="808" y="741" class="d">同一份前端，純瀏覽器執行</text>
+    <text x="808" y="753" class="d">免安裝</text></g>
+
+  <text x="40" y="782" class="note">同一份前端可包在 Electron 桌面殼層內執行，也可用瀏覽器直接開啟（npm run serve／GitHub Pages）。</text>
+
+  <line x1="40" y1="798" x2="1160" y2="798" class="divider"/>
+  <text x="40" y="818" class="status">單機圖片編輯器・無使用者帳號・無伺服器 API・二進位安裝檔未簽署（見 HANDOFF.md）</text>
+</svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch box"></span>一般元件／模組</div>
+    <div class="legend-item"><span class="swatch keystone"></span>關鍵設計決定（keystone）</div>
+    <div class="legend-item">▸▾ 主要資料流向（UI → 邏輯 → 瀏覽器 API → 本機 AI 引擎）</div>
+    <div class="legend-item">┄ 虛線 ＝ 容器關係（外層包裹，非資料流下一步）</div>
+  </div>
+
+  <div class="section-title">關鍵設計決定 · KEYSTONE</div>
+  <div class="keystone-note">
+    這個工具的核心賣點是 <b>「完全本地處理，不上傳任何圖片資料」</b>（README／AGENTS.md 明文：「不得依賴需要網路的 OCR 服務」）。
+    OCR（Tesseract.js）與 AI 去背（@imgly/background-removal）雖然都是透過 CDN（jsdelivr／esm.sh）載入函式庫程式碼與模型，
+    但那只發生一次（且僅下載程式碼／權重，不是使用者的圖片）；真正的文字辨識與去背運算都在使用者的瀏覽器或 Electron Renderer
+    行程內完成，圖片本身的位元組從未離開本機。這也解釋了為什麼存檔／輸出走的是 <code>Blob + &lt;a download&gt;</code>
+    而不是任何伺服器往返 —— 整個管線沒有後端可以上傳到。
+  </div>
+
+  <footer>
+    <span>image-viewer-ocr · /Users/leonalin/Code/image-viewer-ocr</span>
+    <span>另見 architecture.svg（向量）／architecture.mmd（Mermaid 原始碼）</span>
+  </footer>
+
+</div>
+</body>
+</html>

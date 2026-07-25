@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>image-viewer-ocr — Mockup 總覽</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding:40px 24px 80px;}
+.page{max-width:1080px;margin:0 auto;}
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:18px;}
+.wordmark{font-family:var(--serif);font-size:30px;}
+.wordmark .dot{color:var(--accent);}
+.masthead-sub{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;}
+.buildlog{font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.9;text-align:right;}
+.buildlog .ok{color:var(--ok);}
+.buildlog .go{color:var(--accent);}
+.section-title{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:11px;margin:34px 0 12px;}
+.no-backend{background:var(--accent-soft);border:1px solid var(--accent);border-radius:9px;padding:16px 20px;font-size:13.5px;line-height:1.75;color:var(--ink);margin:16px 0 8px;}
+.no-backend b{color:var(--accent);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:16px 18px;text-decoration:none;color:var(--ink);display:block;transition:border-color .15s;}
+.card:hover{border-color:var(--accent);}
+.card .step{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.08em;margin-bottom:6px;}
+.card h3{margin:0 0 6px;font-size:15px;}
+.card p{margin:0;font-size:12px;color:var(--muted);line-height:1.6;}
+.card .src{display:block;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div>
+      <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+      <div class="masthead-sub">mockup 總覽 · Wireframe Index</div>
+    </div>
+    <div class="buildlog">
+      <div><span class="go">▸</span> 8 個前台畫面 · 依實際 index.html／app.js 逐一拆解</div>
+      <div><span class="ok">✓</span> 全部為線框稿，非最終視覺</div>
+    </div>
+  </div>
+
+  <div class="no-backend">
+    <b>本專案沒有「後台」</b>：image-viewer-ocr 是單機圖片編輯工具（Electron 桌面 App，或同一份前端當純靜態網頁執行）。
+    沒有使用者帳號、沒有伺服器、沒有管理介面 —— 所有畫面都是同一位使用者在同一個視窗內操作的「前台」。
+    因此以下只列前台頁面，依實際 DOM 結構（index.html 內各 <code>#id</code> 區塊／彈窗）逐一拆出線框稿，
+    程式裡有幾個獨立畫面／彈窗就做幾頁。
+  </div>
+
+  <div class="section-title">前台 · 8 個畫面／彈窗</div>
+  <div class="grid">
+
+    <a class="card" href="front-welcome.html">
+      <div class="step">01 · 初始狀態</div>
+      <h3>歡迎畫面</h3>
+      <p>尚未開啟圖片時的初始畫面，提供「選擇圖片」入口與拖曳提示。</p>
+      <span class="src">#welcome-screen</span>
+    </a>
+
+    <a class="card" href="front-editor.html">
+      <div class="step">02 · 核心畫面</div>
+      <h3>主編輯畫面</h3>
+      <p>三欄式版面：左側 24 種濾鏡、中央畫布、右側 9 項調整參數、頂部工具列、底部狀態列。</p>
+      <span class="src">#editor-container</span>
+    </a>
+
+    <a class="card" href="front-crop.html">
+      <div class="step">03 · 編輯模式</div>
+      <h3>裁切模式</h3>
+      <p>畫布疊層互動，8 個控制手把＋鍵盤操作（Enter 確認／Esc 取消／R 重置）。</p>
+      <span class="src">#crop-overlay</span>
+    </a>
+
+    <a class="card" href="front-resize.html">
+      <div class="step">04 · 對話框</div>
+      <h3>尺寸調整對話框</h3>
+      <p>快速縮放、寬高鏈結、放大品質、DPI 解析度設定。</p>
+      <span class="src">#resize-modal</span>
+    </a>
+
+    <a class="card" href="front-ocr-select.html">
+      <div class="step">05 · OCR 步驟 1／3</div>
+      <h3>OCR 框選文字區域</h3>
+      <p>在圖片上拖曳框出要辨識的文字範圍。</p>
+      <span class="src">#ocr-region-overlay</span>
+    </a>
+
+    <a class="card" href="front-ocr-language.html">
+      <div class="step">06 · OCR 步驟 2／3</div>
+      <h3>OCR 語言選擇彈窗</h3>
+      <p>複選繁中／簡中／日／韓／英，較少語言可提高準確度。</p>
+      <span class="src">#ocr-lang-modal</span>
+    </a>
+
+    <a class="card" href="front-ocr-result.html">
+      <div class="step">07 · OCR 步驟 3／3</div>
+      <h3>OCR 辨識結果面板</h3>
+      <p>可編輯文字框，複製或存成 TXT。</p>
+      <span class="src">#ocr-result-panel</span>
+    </a>
+
+    <a class="card" href="front-remove-bg.html">
+      <div class="step">08 · 編輯模式</div>
+      <h3>AI 智慧去背編輯</h3>
+      <p>可拖曳工具列：AI 自動選取、手動筆刷、魔術棒、遮罩歷史（最多 30 步）。</p>
+      <span class="src">#mask-edit-overlay + #mask-edit-toolbar</span>
+    </a>
+
+  </div>
+
+  <footer>
+    image-viewer-ocr · /Users/leonalin/Code/image-viewer-ocr/mockup · 另見 ../docs/architecture.html（系統架構圖）與 ../progress.md
+  </footer>
+
+</div>
+</body>
+</html>

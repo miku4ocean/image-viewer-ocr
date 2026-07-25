@@ -1,0 +1,57 @@
+%% image-viewer-ocr 系統架構圖（Mermaid flowchart TB）
+%% 依實際程式碼／HANDOFF.md／AGENTS.md 讀到的架構繪製，查不到的部分標「未確認」。
+%% 本專案：Electron 桌面 App ＋ 同一份前端也可當純靜態網頁（GitHub Pages）執行，無伺服器後端。
+
+flowchart TB
+
+  subgraph L1["01 · 使用者介面層 UI　(index.html + styles.css + nordic-design-system.css)"]
+    direction LR
+    A1["頂部工具列<br/>開啟／存檔／復原重做／裁切／尺寸／去背／OCR／設定"]
+    A2["左側濾鏡側欄<br/>24 種濾鏡即時預覽"]
+    A3["中央畫布區 canvas-area<br/>歡迎畫面／編輯器／裁切・OCR・去背疊層"]
+    A4["右側調整側欄<br/>9 項參數滑桿"]
+    A5["彈出視窗群<br/>尺寸調整・OCR語言選擇・去背工具列・Loading・Toast"]
+    A6["底部狀態列<br/>檔名・尺寸・DPI・縮放"]
+  end
+
+  subgraph L2["02 · 應用邏輯層　app.js（3,262 行，單一 state 物件驅動）"]
+    direction LR
+    B1["濾鏡／調整運算<br/>Canvas 像素運算"]
+    B2["裁切／旋轉／翻轉"]
+    B3["Undo/Redo 歷史<br/>最多 20 步"]
+    B4["OCR 流程控制<br/>框選→語言選擇→辨識→結果面板"]
+    B5["去背遮罩編輯<br/>筆刷／魔術棒，歷史最多 30 步"]
+  end
+
+  subgraph L3["03 · 瀏覽器 Web API 層"]
+    direction LR
+    C1["Canvas 2D API<br/>像素讀寫"]
+    C2["File API<br/>開檔／拖曳圖片"]
+    C3["Blob + &lt;a download&gt;<br/>存檔 PNG/JPG/WebP/TXT"]
+    C4["dynamic import()<br/>執行期載入去背模組"]
+  end
+
+  subgraph L4["04 · 本機 AI／OCR 引擎 ── ★ 關鍵設計決定（keystone）"]
+    direction LR
+    D1["Tesseract.js<br/>CDN &lt;script&gt; 載入，OCR 辨識引擎"]
+    D2["@imgly/background-removal<br/>esm.sh 動態 import()，AI 去背模型"]
+  end
+  NOTE["🔒 圖片位元組不上傳伺服器：函式庫程式碼／模型透過 CDN 下載一次（首次使用），\n但實際的文字辨識與去背運算全部在本機（瀏覽器或 Electron Renderer）執行"]
+
+  subgraph L5["05 · 桌面殼層／部署形態"]
+    direction LR
+    E1["Electron main process<br/>BrowserWindow, nodeIntegration:false, contextIsolation:true"]
+    E2["選單 → executeJavaScript<br/>選單項目直接呼叫頁面內函式（非 ipcMain/preload 橋接）"]
+    E3["npm run serve ／ GitHub Pages<br/>同一份前端，純瀏覽器執行，免安裝"]
+  end
+
+  L1 --> L2
+  L2 --> L3
+  L3 --> L4
+  L4 -.-> NOTE
+  L5 -. 載入同一份 index.html／app.js（外層容器，非資料流下一步） .-> L1
+
+  classDef keystone fill:#EAEEF7,stroke:#2E4B8F,stroke-width:2.5px,color:#181B20;
+  classDef note fill:#FBFAF7,stroke:#2E4B8F,stroke-width:1px,color:#6B7178,font-style:italic;
+  class L4 keystone
+  class NOTE note

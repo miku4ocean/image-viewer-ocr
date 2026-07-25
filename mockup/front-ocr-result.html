@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — OCR 辨識結果面板</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.mock-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+.wordmark{font-family:var(--serif);font-size:19px;}
+.wordmark .dot{color:var(--accent);}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.crumb b{color:var(--accent);}
+.badge-row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.badge{border:1px solid var(--line);border-radius:5px;padding:2px 8px;}
+.badge.go{color:var(--accent);border-color:var(--accent);}
+.wire-banner{background:var(--accent-soft);border-bottom:1px solid var(--line);padding:8px 22px;font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.05em;}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:7px 14px;font-size:12.5px;background:var(--paper);color:var(--ink);cursor:pointer;}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+footer.mock-foot{padding:10px 22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+a.back{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;}
+
+.shell{height:660px;display:grid;grid-template-columns:1fr 320px;}
+.canvas{position:relative;display:flex;align-items:center;justify-content:center;background:#EFEDE6;}
+.image-ph{width:70%;height:78%;background:linear-gradient(135deg,#DCE3EE 0%,#F3D9C4 100%);}
+.panel{border-left:1px solid var(--line);display:flex;flex-direction:column;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;}
+.lang-info{padding:8px 16px;font-family:var(--mono);font-size:10.5px;color:var(--accent);background:var(--accent-soft);border-bottom:1px solid var(--line);}
+.textarea{flex:1;margin:14px 16px;border:1px solid var(--line);border-radius:7px;padding:10px;font-size:12.5px;line-height:1.7;color:var(--ink);overflow:auto;}
+.panel-foot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);}
+.panel-foot .btn{flex:1;justify-content:center;}
+</style>
+</head>
+<body>
+  <div class="mock-topbar">
+    <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+    <div class="crumb">前台 · <b>OCR 辨識結果面板</b>（步驟 3／3）</div>
+    <div class="badge-row"><span class="badge go">▸ mockup</span><span class="badge">index.html #ocr-result-panel</span></div>
+  </div>
+  <div class="wire-banner">MOCKUP — 線框稿。辨識完成後顯示於畫布右側，可複製文字或存成 TXT；資料來源：index.html #ocr-result-panel</div>
+
+  <div class="shell card">
+    <div class="canvas">
+      <div class="image-ph"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span>📝 辨識結果</span><span style="color:var(--muted);cursor:pointer;">✕</span></div>
+      <div class="lang-info">🌐 使用選定語言辨識：繁體中文 + 英文</div>
+      <div class="textarea">
+        這裡是辨識出來的文字內容。<br><br>
+        使用者可以直接在此文字框中編輯／校對辨識結果，接著點擊下方按鈕複製或另存為純文字檔（.txt）。
+      </div>
+      <div class="panel-foot">
+        <button class="btn">📋 複製文字</button>
+        <button class="btn primary">💾 儲存為 TXT</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mock-foot">
+    <span>image-viewer-ocr / mockup / front-ocr-result.html</span>
+    <a class="back" href="index.html">← 回總覽</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — 裁切模式</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.mock-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+.wordmark{font-family:var(--serif);font-size:19px;}
+.wordmark .dot{color:var(--accent);}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.crumb b{color:var(--accent);}
+.badge-row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.badge{border:1px solid var(--line);border-radius:5px;padding:2px 8px;}
+.badge.go{color:var(--accent);border-color:var(--accent);}
+.wire-banner{background:var(--accent-soft);border-bottom:1px solid var(--line);padding:8px 22px;font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.05em;}
+footer.mock-foot{padding:10px 22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+a.back{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;}
+
+.shell{height:660px;display:flex;flex-direction:column;}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);}
+.tool-icon{width:34px;height:30px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);}
+.tool-icon.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.canvas{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:#EFEDE6;}
+.image-ph{width:70%;height:78%;position:relative;background:linear-gradient(135deg,#DCE3EE 0%,#F3D9C4 100%);}
+.crop-area{position:absolute;top:14%;left:12%;right:12%;bottom:14%;border:2px dashed var(--accent);background:rgba(46,75,143,.06);}
+.handle{position:absolute;width:12px;height:12px;background:var(--paper);border:2px solid var(--accent);border-radius:2px;}
+.n{top:-6px;left:calc(50% - 6px);} .s{bottom:-6px;left:calc(50% - 6px);}
+.e{right:-6px;top:calc(50% - 6px);} .w{left:-6px;top:calc(50% - 6px);}
+.nw{top:-6px;left:-6px;} .ne{top:-6px;right:-6px;} .sw{bottom:-6px;left:-6px;} .se{bottom:-6px;right:-6px;}
+.outside{position:absolute;inset:0;background:rgba(24,27,32,.35);}
+.mask{position:absolute;}
+.hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;padding:6px 14px;border-radius:20px;}
+.footbar{padding:6px 18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+  <div class="mock-topbar">
+    <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+    <div class="crumb">前台 · <b>裁切模式</b>（crop-overlay，8 個控制手把）</div>
+    <div class="badge-row"><span class="badge go">▸ mockup</span><span class="badge">index.html #crop-overlay</span></div>
+  </div>
+  <div class="wire-banner">MOCKUP — 線框稿。裁切為畫布上的疊層互動，無獨立工具列；操作方式為鍵盤／拖曳（見下方狀態列提示），資料來源：app.js 第 937 行起「裁切功能」</div>
+
+  <div class="shell card">
+    <div class="toolbar">
+      <div class="tool-icon active">✂️ 裁切模式進行中</div>
+      <div style="flex:1"></div>
+      <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);">預設比例：自由 · 1:1 · 4:3 · 16:9 · 9:16</div>
+    </div>
+    <div class="canvas">
+      <div class="image-ph">
+        <div class="outside"></div>
+        <div class="crop-area">
+          <div class="handle nw"></div><div class="handle n"></div><div class="handle ne"></div>
+          <div class="handle w"></div><div class="handle e"></div>
+          <div class="handle sw"></div><div class="handle s"></div><div class="handle se"></div>
+        </div>
+      </div>
+      <div class="hint">拖曳調整裁切區域 · 按 Enter 確認 / Esc 取消 / R 重置</div>
+    </div>
+    <div class="footbar">
+      <span>裁切中 — 拖曳四角／四邊控制點調整範圍</span>
+      <span>裁切區 1800 × 2400（原圖 3024 × 4032）</span>
+    </div>
+  </div>
+
+  <footer class="mock-foot">
+    <span>image-viewer-ocr / mockup / front-crop.html</span>
+    <a class="back" href="index.html">← 回總覽</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — 主編輯畫面</title>
+<style>
+:root{
+  --paper:#FBFAF7; --ink:#181B20; --muted:#6B7178;
+  --line:#E7E3DA; --accent:#2E4B8F; --accent-soft:#EAEEF7;
+  --ok:#1F7A54; --err:#B03A2E; --warn:#B8860B;
+  --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+.mock-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+.wordmark{font-family:var(--serif);font-size:19px;}
+.wordmark .dot{color:var(--accent);}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.crumb b{color:var(--accent);}
+.badge-row{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.badge{border:1px solid var(--line);border-radius:5px;padding:2px 8px;}
+.badge.go{color:var(--accent);border-color:var(--accent);}
+.wire-banner{background:var(--accent-soft);border-bottom:1px solid var(--line);padding:8px 22px;font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.05em;}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:6px 12px;font-size:12.5px;background:var(--paper);color:var(--ink);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.disabled{opacity:.45;}
+footer.mock-foot{padding:10px 22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+a.back{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:11px;}
+
+.shell{display:grid;grid-template-columns:200px 1fr 240px;height:660px;}
+.toolbar{grid-column:1/4;display:flex;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);}
+.tool-icon{width:34px;height:30px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink);}
+.tool-icon.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.sidebar{border-right:1px solid var(--line);padding:14px;overflow:auto;}
+.sidebar.right{border-right:none;border-left:1px solid var(--line);}
+.sidebar h4{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.filter-item{border:1px solid var(--line);border-radius:7px;padding:6px;text-align:center;font-size:10.5px;color:var(--muted);}
+.filter-item.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600;}
+.filter-swatch{height:28px;border-radius:5px;background:#E7E3DA;margin-bottom:4px;}
+.canvas{position:relative;display:flex;align-items:center;justify-content:center;background:#EFEDE6;}
+.image-ph{width:74%;height:74%;border:1px solid var(--line);border-radius:4px;background:
+  linear-gradient(135deg,#DCE3EE 0%,#F3D9C4 100%);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.08);}
+.zoom-ctl{position:absolute;top:12px;right:12px;display:flex;gap:4px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:11px;}
+.adj-row{margin-bottom:14px;}
+.adj-row .lbl{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;}
+.adj-row .lbl span:last-child{color:var(--muted);font-family:var(--mono);}
+.slider{height:4px;border-radius:2px;background:var(--line);position:relative;}
+.slider i{position:absolute;top:50%;width:12px;height:12px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);}
+.footbar{grid-column:1/4;padding:6px 18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+  <div class="mock-topbar">
+    <div class="wordmark">ImageViewerOCR<span class="dot">.</span></div>
+    <div class="crumb">前台 · <b>主編輯畫面</b>（濾鏡＋調整＋工具列）</div>
+    <div class="badge-row"><span class="badge go">▸ mockup</span><span class="badge">index.html #editor-container</span></div>
+  </div>
+  <div class="wire-banner">MOCKUP — 線框稿（Wireframe），呈現版面結構與主要文案，非最終視覺；資料來源：index.html + styles.css 主編輯區</div>
+
+  <div class="shell card">
+    <div class="toolbar">
+      <div class="tool-icon">📂 開啟</div>
+      <div class="tool-icon">💾 儲存</div>
+      <div class="tool-icon">↩️</div>
+      <div class="tool-icon">↪️</div>
+      <div class="tool-icon">✂️ 裁切</div>
+      <div class="tool-icon">📐 尺寸</div>
+      <div class="tool-icon">🖼️ 去背</div>
+      <div class="tool-icon active">📝 OCR</div>
+      <div style="flex:1"></div>
+      <div class="tool-icon">⚙️ 設定<sup style="color:var(--warn)">†</sup></div>
+    </div>
+
+    <div class="sidebar">
+      <h4>濾鏡 <span>24</span></h4>
+      <div class="filter-grid">
+        <div class="filter-item active"><div class="filter-swatch"></div>原圖</div>
+        <div class="filter-item"><div class="filter-swatch"></div>黑白</div>
+        <div class="filter-item"><div class="filter-swatch"></div>復古</div>
+        <div class="filter-item"><div class="filter-swatch"></div>暖色</div>
+        <div class="filter-item"><div class="filter-swatch"></div>冷色</div>
+        <div class="filter-item"><div class="filter-swatch"></div>懷舊</div>
+        <div class="filter-item"><div class="filter-swatch"></div>戲劇</div>
+        <div class="filter-item"><div class="filter-swatch"></div>褪色</div>
+        <div class="filter-item" style="grid-column:1/3;color:var(--muted);font-size:9.5px;border:none;">… 共 24 種（鮮豔／模糊／銳利／暈影／負片／素描／賽博龐克／夕陽／海洋／森林／玫瑰／金色／金屬／黑色電影／夢幻／普普）</div>
+      </div>
+    </div>
+
+    <div class="canvas">
+      <div class="zoom-ctl">− &nbsp;100%&nbsp; + &nbsp;適合</div>
+      <div class="image-ph">圖片畫布（canvas#image-canvas）</div>
+    </div>
+
+    <div class="sidebar right">
+      <h4>調整 <span style="cursor:pointer;">重置</span></h4>
+      <div class="adj-row"><div class="lbl"><span>自動色階</span></div><button class="btn" style="width:100%;justify-content:center;">✨ 一鍵自動調整</button></div>
+      <div class="adj-row"><div class="lbl"><span>曝光</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>對比</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>亮部</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>陰影</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>飽和度</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>色溫</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>色調</span><span>0</span></div><div class="slider"><i style="left:50%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>褐色調</span><span>0</span></div><div class="slider"><i style="left:0%"></i></div></div>
+      <div class="adj-row"><div class="lbl"><span>清晰度</span><span>0</span></div><div class="slider"><i style="left:0%"></i></div></div>
+    </div>
+
+    <div class="footbar">
+      <span>就緒</span>
+      <span>photo.jpg · 3024 × 4032 · 300 DPI · 縮放 100%</span>
+    </div>
+  </div>
+
+  <p style="font-family:var(--mono);font-size:10.5px;color:var(--warn);padding:0 22px;">† 設定按鈕目前無彈窗／功能（原始碼確認：僅圖示，未綁定事件），屬尚待補齊項目，見 progress.md I 段。</p>
+
+  <footer class="mock-foot">
+    <span>image-viewer-ocr / mockup / front-editor.html</span>
+    <a class="back" href="index.html">← 回總覽</a>
+  </footer>
+</body>
+</html>
