@@ -2233,6 +2233,23 @@ function saveImage() {
             b = (b - 128) * con + 128;
         }
 
+        // 亮部/陰影
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (state.adjustments.highlights !== 0 && luminance > 128) {
+            const factor = (luminance - 128) / 127;
+            const adj = state.adjustments.highlights / 100 * 0.5 * factor;
+            r *= (1 + adj);
+            g *= (1 + adj);
+            b *= (1 + adj);
+        }
+        if (state.adjustments.shadows !== 0 && luminance < 128) {
+            const factor = (128 - luminance) / 128;
+            const adj = state.adjustments.shadows / 100 * 0.5 * factor;
+            r *= (1 + adj);
+            g *= (1 + adj);
+            b *= (1 + adj);
+        }
+
         // 飽和度
         if (state.adjustments.saturation !== 0) {
             const sat = state.adjustments.saturation / 100 + 1;
