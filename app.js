@@ -850,6 +850,13 @@ function applyAllEffects() {
     }
 
     ctx.putImageData(imageData, 0, 0);
+
+    // 清晰度（Unsharp Mask）
+    if (state.adjustments.sharpness > 0) {
+        const amount = state.adjustments.sharpness / 100;
+        applySharpnessToCanvas(elements.imageCanvas, amount);
+    }
+
     elements.imageCanvas.style.filter = filters[state.activeFilter] || '';
 }
 
@@ -1267,6 +1274,32 @@ function applySharpen(canvas) {
 
     ctx.putImageData(imageData, 0, 0);
     return canvas;
+}
+
+// 清晰度調整（用於即時預覽和存檔，amount 0-1）
+function applySharpnessToCanvas(canvas, amount) {
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+    const original = new Uint8ClampedArray(data);
+
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4;
+            for (let c = 0; c < 3; c++) {
+                const center = original[idx + c];
+                const top = original[((y - 1) * width + x) * 4 + c];
+                const bottom = original[((y + 1) * width + x) * 4 + c];
+                const left = original[(y * width + (x - 1)) * 4 + c];
+                const right = original[(y * width + (x + 1)) * 4 + c];
+                const laplacian = 4 * center - top - bottom - left - right;
+                data[idx + c] = Math.max(0, Math.min(255, center + amount * laplacian));
+            }
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
 }
 
 // ========================================
@@ -2289,6 +2322,12 @@ function saveImage() {
     }
 
     outputCtx.putImageData(imageData, 0, 0);
+
+    // 清晰度（Unsharp Mask）
+    if (state.adjustments.sharpness > 0) {
+        const amount = state.adjustments.sharpness / 100;
+        applySharpnessToCanvas(outputCanvas, amount);
+    }
 
     // 套用 CSS 濾鏡效果（grayscale/invert 等）到輸出畫布
     const activeFilterCSS = filters[state.activeFilter];
