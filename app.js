@@ -2290,6 +2290,19 @@ function saveImage() {
 
     outputCtx.putImageData(imageData, 0, 0);
 
+    // 套用 CSS 濾鏡效果（grayscale/invert 等）到輸出畫布
+    const activeFilterCSS = filters[state.activeFilter];
+    if (activeFilterCSS) {
+        const filterCanvas = document.createElement('canvas');
+        filterCanvas.width = outputCanvas.width;
+        filterCanvas.height = outputCanvas.height;
+        const filterCtx = filterCanvas.getContext('2d');
+        filterCtx.filter = activeFilterCSS;
+        filterCtx.drawImage(outputCanvas, 0, 0);
+        outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+        outputCtx.drawImage(filterCanvas, 0, 0);
+    }
+
     // 決定格式和檔名
     let mimeType, extension;
     if (state.fileExtension === 'jpg' || state.fileExtension === 'jpeg') {
