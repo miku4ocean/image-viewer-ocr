@@ -730,13 +730,6 @@ function updateViewportLayout() {
     inner.style.width = innerWidth + 'px';
     inner.style.height = innerHeight + 'px';
 
-    // Debug logging
-    console.log('Viewport layout:', {
-        viewport: { w: viewportWidth, h: viewportHeight },
-        canvas: { w: canvasWidth, h: canvasHeight },
-        inner: { w: innerWidth, h: innerHeight },
-        scrollable: { x: innerWidth > viewportWidth, y: innerHeight > viewportHeight }
-    });
 }
 
 // ========================================
