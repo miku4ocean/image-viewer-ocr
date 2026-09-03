@@ -683,8 +683,13 @@ function updateZoomDisplay() {
 }
 
 function renderCanvas() {
-    const width = Math.round(state.imageWidth * state.zoom);
-    const height = Math.round(state.imageHeight * state.zoom);
+    if (!state.originalImage) return;
+
+    // 邊界保護：極端長寬比（如 1×2000）或極小圖在縮放後，寬或高可能被
+    // Math.round 捨成 0；0 尺寸 canvas 會讓後續 getImageData 拋 IndexSizeError
+    // （圖直接開不起來/縮放時整個掛掉），因此下限固定為 1px。
+    const width = Math.max(1, Math.round(state.imageWidth * state.zoom));
+    const height = Math.max(1, Math.round(state.imageHeight * state.zoom));
 
     elements.imageCanvas.width = width;
     elements.imageCanvas.height = height;
@@ -1388,27 +1393,35 @@ async function autoSelectSubject() {
             }
         });
 
-        // 將結果轉換為圖片用於生成遮罩
+        // 將結果轉換為圖片用於生成遮罩。
+        // 注意：必須等 onload 內的遮罩生成「完成後」本函式才 resolve——
+        // autoSelectBackground() 是 await 本函式後立刻反轉遮罩，若在 onload
+        // 之前就返回，反轉到的會是 null 或上一輪的舊遮罩（隨後又被新遮罩
+        // 蓋掉），「自動選背景」等於永遠失效。
         const resultUrl = URL.createObjectURL(resultBlob);
         const resultImg = new Image();
 
-        resultImg.onload = () => {
-            // 創建遮罩：比較原圖和去背後的透明度
-            generateMaskFromResult(resultImg);
+        await new Promise((resolve) => {
+            resultImg.onload = () => {
+                // 創建遮罩：比較原圖和去背後的透明度
+                generateMaskFromResult(resultImg);
 
-            URL.revokeObjectURL(resultUrl);
-            hideLoading();
-            updateStatus('AI 選取完成 - 綠色區域為主體，紅色區域將被移除');
-            showToast('AI 已選取主體！綠色=保留，紅色=移除。可手動精修後點擊「套用去背」。');
-        };
+                URL.revokeObjectURL(resultUrl);
+                hideLoading();
+                updateStatus('AI 選取完成 - 綠色區域為主體，紅色區域將被移除');
+                showToast('AI 已選取主體！綠色=保留，紅色=移除。可手動精修後點擊「套用去背」。');
+                resolve();
+            };
 
-        resultImg.onerror = () => {
-            hideLoading();
-            showToast('AI 分析失敗', 'error');
-            URL.revokeObjectURL(resultUrl);
-        };
+            resultImg.onerror = () => {
+                hideLoading();
+                showToast('AI 分析失敗', 'error');
+                URL.revokeObjectURL(resultUrl);
+                resolve();
+            };
 
-        resultImg.src = resultUrl;
+            resultImg.src = resultUrl;
+        });
 
     } catch (error) {
         clearInterval(progressInterval);
@@ -2016,8 +2029,17 @@ async function performOCR(region = null) {
             const sourceCtx = sourceCanvas.getContext('2d');
             sourceCtx.drawImage(state.originalImage, regionX, regionY, regionW, regionH, 0, 0, regionW, regionH);
         } else {
-            // 辨識整張圖片
-            sourceCanvas = elements.imageCanvas;
+            // 辨識整張圖片：一律用「原始解析度」重繪，而不是直接拿顯示畫布。
+            // 顯示畫布尺寸隨 zoom 改變：zoom<1 時輸入解析度縮水（辨識品質跟著
+            // 縮放跑），且 Tesseract 回傳的 bbox 會落在顯示座標系，
+            // renderOCROverlay 再乘一次 zoom 就整組錯位。改用原始解析度後，
+            // bbox 座標系＝原圖座標系，與區域辨識路徑（同樣取自
+            // state.originalImage）保持一致。
+            sourceCanvas = document.createElement('canvas');
+            sourceCanvas.width = state.imageWidth;
+            sourceCanvas.height = state.imageHeight;
+            const sourceCtx = sourceCanvas.getContext('2d');
+            sourceCtx.drawImage(state.originalImage, 0, 0, state.imageWidth, state.imageHeight);
         }
 
         // 使用用戶選擇的語言組合
@@ -2085,8 +2107,10 @@ function renderOCROverlay() {
 
     const canvasRect = elements.imageCanvas.getBoundingClientRect();
     const viewportRect = elements.imageViewport.getBoundingClientRect();
-    const offsetX = canvasRect.left - viewportRect.left;
-    const offsetY = canvasRect.top - viewportRect.top;
+    // 與 updateCropArea 一致：ocr-text-layer 錨定在捲動內容的原點，
+    // 偏移必須加回 scrollLeft/scrollTop，否則捲動後字詞框會整組偏移。
+    const offsetX = canvasRect.left - viewportRect.left + elements.imageViewport.scrollLeft;
+    const offsetY = canvasRect.top - viewportRect.top + elements.imageViewport.scrollTop;
 
     state.ocrWords.forEach((word, index) => {
         if (!word.bbox) return;
@@ -2598,7 +2622,10 @@ function initEventListeners() {
         applyAllEffects();
     });
     elements.btnZoomOut.addEventListener('click', () => {
-        state.zoom = Math.max(state.zoom / 1.25, 0.1);
+        // 除了固定下限 0.1，還要保證畫布最短邊至少 1px（極小圖保護，
+        // 例如 4×4 圖在 zoom 0.107 時 round(4*0.107)=0 → getImageData 拋錯）
+        const minZoom = Math.max(0.1, 1 / (state.imageWidth || 1), 1 / (state.imageHeight || 1));
+        state.zoom = Math.max(state.zoom / 1.25, minZoom);
         updateZoomDisplay();
         renderCanvas();
         applyAllEffects();
@@ -2623,6 +2650,9 @@ function initEventListeners() {
         // OCR 區域選擇模式
         if (state.isSelectingOCRRegion) {
             if (e.key === 'Enter') {
+                // 必須擋掉預設行為：焦點若還在「OCR」按鈕上，Enter 的預設行為
+                // 會再次觸發該按鈕 → 重新進入框選模式，把剛顯示的辨識結果面板蓋掉。
+                e.preventDefault();
                 // 辨識整張圖片或選取區域
                 state.isSelectingOCRRegion = false;
                 if (elements.ocrRegionOverlay) {
@@ -2630,6 +2660,7 @@ function initEventListeners() {
                 }
                 performOCR(state.ocrRegion);
             } else if (e.key === 'Escape') {
+                e.preventDefault();
                 closeOCRPanel();
             }
             return;

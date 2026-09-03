@@ -1,5 +1,27 @@
 # HANDOFF — image-viewer-ocr
-更新：2026-08-16／claude
+更新：2026-09-04／claude
+
+## 2026-09-04 深度偵錯輪（邊界/OCR 座標/非同步時序），4 個真 bug 已修（先紅後綠）
+- **renderCanvas 尺寸捨成 0 崩潰**（app.js renderCanvas + 縮小按鈕）：1×2000 極端長條圖
+  載入即拋 IndexSizeError 開不起來；4×4 極小圖連按縮小同樣掛掉。修法：canvas 寬高下限 1px
+  ＋縮小 zoom 下限保證最短邊 ≥1px。
+- **OCR 框選模式 Enter 沒擋預設行為**（keydown handler）：焦點還在「OCR」按鈕上按 Enter，
+  預設行為再次觸發按鈕 → 重回框選模式，把剛出爐的結果面板蓋掉。修法：Enter/Escape 分支
+  補 e.preventDefault()（與裁切模式一致，且不影響語言彈窗 checkbox 鍵盤操作）。
+- **全圖 OCR 拿顯示畫布當輸入**（performOCR(null)）：zoom<1 時輸入解析度縮水（實測 2000×1500
+  圖只送進 900×675），且 bbox 落在顯示座標系、renderOCROverlay 再乘一次 zoom → 字詞框整組
+  往左上錯位；overlay 偏移也漏加 scrollLeft/Top（捲動後再偏一次）。修法：全圖辨識改用原始
+  解析度重繪（與區域辨識路徑一致），overlay 偏移補捲動量。
+- **「自動選背景」永遠失效**（autoSelectBackground/autoSelectSubject 非同步時序）：
+  await autoSelectSubject() 後立即反轉遮罩，但遮罩在 resultImg.onload 才生成 → 第一次反轉到
+  null、之後反轉到舊遮罩再被新遮罩蓋掉。修法：autoSelectSubject 等 onload 遮罩生成完才 resolve。
+- 測試 28 → 34 條（新增 tests/boundary-and-ocr-coords.spec.ts 6 條＋素材 strip1x2000/tiny4/
+  big2000x1500.png）；另修 test-utils loadFixture flaky（只等 editor visible，第二張圖會讀到
+  前一張殘影——2026-09-04 基線實際紅過一次，已改等 #image-info 出現新檔名）。
+- 範圍外發現（未修）：HEIC 在 Electron 走直接載入必失敗（Chromium 不解 HEIC，
+  convertHeicAndLoad 是死碼且依賴 CDN，違反離線禁區）；超大圖 zoom-in 5x 可能超過
+  Chromium canvas 面積上限（需 >268M px 才會觸發，e2e 驗證成本高）；
+  updateImageInfo 的 estimatedSizeMB 是死碼。
 
 ## 目前目標
 成熟的 macOS Electron 圖片工具，v1.4.0 已加入 OCR 語言選擇功能，持續維護與 bug fix 階段。

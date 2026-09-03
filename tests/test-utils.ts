@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 import { _electron as electron, ElectronApplication, Page, BrowserContext } from 'playwright';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -107,10 +108,17 @@ export async function closeApp(launched: LaunchedApp) {
 }
 
 // 透過 file input 載入圖片並等編輯器出現。
+// 注意：只等 #editor-container visible 是不夠的——同一個 App 實例載入第二張圖時
+// 編輯器早已 visible，會在新圖畫上 canvas 前就放行（FileReader+Image decode 是
+// 非同步），造成讀到前一張圖殘影的 flaky（2026-09-04 全套跑時實際發生：
+// filter-accuracy 對比測試在 tritone.png 上讀到 gray128.png 的 128）。
+// updateImageInfo() 在 img.onload 內於 canvas 繪製完成「之後」同步執行，
+// 因此等 #image-info 出現新檔名即可確定 canvas 已是新圖。
 export async function loadFixture(window: Page, fixtureFileName: string) {
   const filePath = path.join(fixturesDir, fixtureFileName);
   await window.setInputFiles('#file-input', filePath);
   await window.locator('#editor-container').waitFor({ state: 'visible' });
+  await expect(window.locator('#image-info')).toContainText(fixtureFileName, { timeout: 10_000 });
   return filePath;
 }
 
