@@ -35,6 +35,16 @@ const state = {
         sharpness: 0
     },
 
+    // 曲線調整
+    curves: {
+        master: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        r: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        g: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        b: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+    },
+    curveLUT: null,         // 預先計算的查找表
+    activeCurveChannel: 'master',
+
     // 裁切狀態
     isCropping: false,
     cropRect: { x: 0, y: 0, width: 0, height: 0 },
@@ -118,6 +128,13 @@ const elements = {
     },
     btnAutoAdjust: document.getElementById('btn-auto-adjust'),
     btnResetAdjustments: document.getElementById('btn-reset-adjustments'),
+
+    // 曲線調整
+    curvesHeader: document.getElementById('curves-header'),
+    curvesPanel: document.getElementById('curves-panel'),
+    curvesToggleIcon: document.getElementById('curves-toggle-icon'),
+    curvesCanvas: document.getElementById('curves-canvas'),
+    btnResetCurves: document.getElementById('btn-reset-curves'),
 
     // 縮放
     btnZoomIn: document.getElementById('btn-zoom-in'),
@@ -778,6 +795,9 @@ function applyAllEffects() {
     const imageData = ctx.getImageData(0, 0, elements.imageCanvas.width, elements.imageCanvas.height);
     const data = imageData.data;
 
+    // 曲線 LUT（預先取出避免迴圈內重複查找）
+    const curveLUT = (!isCurvesDefault()) ? state.curveLUT : null;
+
     for (let i = 0; i < data.length; i += 4) {
         let r = data[i];
         let g = data[i + 1];
@@ -849,6 +869,17 @@ function applyAllEffects() {
             b = b * (1 - sep) + tb * sep;
         }
 
+        // 曲線 LUT 映射（在所有調整之後、最終 clamp 之前）
+        if (curveLUT) {
+            r = curveLUT.r[Math.max(0, Math.min(255, Math.round(r)))];
+            g = curveLUT.g[Math.max(0, Math.min(255, Math.round(g)))];
+            b = curveLUT.b[Math.max(0, Math.min(255, Math.round(b)))];
+            // Master 曲線最後套用
+            r = curveLUT.master[r];
+            g = curveLUT.master[g];
+            b = curveLUT.master[b];
+        }
+
         data[i] = Math.max(0, Math.min(255, r));
         data[i + 1] = Math.max(0, Math.min(255, g));
         data[i + 2] = Math.max(0, Math.min(255, b));
@@ -916,6 +947,16 @@ function resetAdjustments() {
     };
     state.activeFilter = 'none';
 
+    // 同時重置曲線
+    state.curves = {
+        master: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        r: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        g: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        b: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+    };
+    state.curveLUT = null;
+    drawCurvesEditor();
+
     updateSliderValues();
     updateFilterSelection();
     applyAllEffects();
@@ -936,6 +977,381 @@ function updateFilterSelection() {
     document.querySelectorAll('.filter-item').forEach(item => {
         item.classList.toggle('active', item.dataset.filter === state.activeFilter);
     });
+}
+
+// ========================================
+// 6.5 曲線調整功能
+// ========================================
+
+/**
+ * Monotone cubic spline interpolation (Fritsch-Carlson)
+ * 防止過沖——輸出值不會超出相鄰控制點的範圍
+ */
+function monotoneCubicSpline(points) {
+    const n = points.length;
+    if (n < 2) return (x) => x;
+    if (n === 2) {
+        // 線性插值
+        const [p0, p1] = points;
+        const slope = (p1.y - p0.y) / (p1.x - p0.x || 1);
+        return (x) => p0.y + slope * (x - p0.x);
+    }
+
+    // 排序控制點
+    const sorted = points.slice().sort((a, b) => a.x - b.x);
+    const xs = sorted.map(p => p.x);
+    const ys = sorted.map(p => p.y);
+
+    // 計算間距和斜率
+    const dxs = [];
+    const dys = [];
+    const ms = [];
+    for (let i = 0; i < n - 1; i++) {
+        dxs[i] = xs[i + 1] - xs[i];
+        dys[i] = ys[i + 1] - ys[i];
+        ms[i] = dxs[i] !== 0 ? dys[i] / dxs[i] : 0;
+    }
+
+    // 計算切線 (Fritsch-Carlson monotone)
+    const c1s = [ms[0]];
+    for (let i = 0; i < n - 2; i++) {
+        if (ms[i] * ms[i + 1] <= 0) {
+            c1s.push(0);
+        } else {
+            const common = dxs[i] + dxs[i + 1];
+            c1s.push(3 * common / ((common + dxs[i + 1]) / ms[i] + (common + dxs[i]) / ms[i + 1]));
+        }
+    }
+    c1s.push(ms[n - 2]);
+
+    // 計算多項式係數
+    const c2s = [];
+    const c3s = [];
+    for (let i = 0; i < n - 1; i++) {
+        const invDx = dxs[i] !== 0 ? 1 / dxs[i] : 0;
+        const common = c1s[i] + c1s[i + 1] - 2 * ms[i];
+        c2s.push((ms[i] - c1s[i] - common) * invDx);
+        c3s.push(common * invDx * invDx);
+    }
+
+    return function (x) {
+        // 邊界外推用最近端點值
+        if (x <= xs[0]) return ys[0];
+        if (x >= xs[n - 1]) return ys[n - 1];
+
+        // 二分查找區間
+        let lo = 0, hi = n - 1;
+        while (lo < hi - 1) {
+            const mid = (lo + hi) >> 1;
+            if (xs[mid] <= x) lo = mid;
+            else hi = mid;
+        }
+        const i = lo;
+        const diff = x - xs[i];
+        return ys[i] + c1s[i] * diff + c2s[i] * diff * diff + c3s[i] * diff * diff * diff;
+    };
+}
+
+/**
+ * 從控制點生成 256 元素的 LUT
+ */
+function buildCurveLUT(points) {
+    const interp = monotoneCubicSpline(points);
+    const lut = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) {
+        lut[i] = Math.max(0, Math.min(255, Math.round(interp(i))));
+    }
+    return lut;
+}
+
+/**
+ * 重新計算所有四條曲線的 LUT 並存進 state
+ */
+function rebuildAllCurveLUTs() {
+    state.curveLUT = {
+        master: buildCurveLUT(state.curves.master),
+        r: buildCurveLUT(state.curves.r),
+        g: buildCurveLUT(state.curves.g),
+        b: buildCurveLUT(state.curves.b),
+    };
+}
+
+/**
+ * 判斷目前曲線是否為預設（對角線）——全為預設時可跳過 LUT 運算
+ */
+function isCurvesDefault() {
+    for (const ch of ['master', 'r', 'g', 'b']) {
+        const pts = state.curves[ch];
+        if (pts.length !== 2) return false;
+        if (pts[0].x !== 0 || pts[0].y !== 0) return false;
+        if (pts[1].x !== 255 || pts[1].y !== 255) return false;
+    }
+    return true;
+}
+
+/**
+ * 重置曲線到預設（對角線）
+ */
+function resetCurves() {
+    state.curves = {
+        master: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        r: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        g: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        b: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+    };
+    state.curveLUT = null;
+    drawCurvesEditor();
+    applyAllEffects();
+}
+
+/**
+ * 計算圖片的亮度 histogram（用於曲線編輯器背景）
+ */
+function computeHistogram() {
+    if (!state.originalImage) return null;
+    const tmpCanvas = document.createElement('canvas');
+    const w = Math.min(state.imageWidth, 512);
+    const h = Math.round(w * state.imageHeight / state.imageWidth);
+    tmpCanvas.width = w;
+    tmpCanvas.height = h;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.drawImage(state.originalImage, 0, 0, w, h);
+    const data = tmpCtx.getImageData(0, 0, w, h).data;
+    const hist = new Float64Array(256);
+    for (let i = 0; i < data.length; i += 4) {
+        const lum = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        hist[lum]++;
+    }
+    return hist;
+}
+
+/**
+ * 繪製曲線編輯器 Canvas
+ */
+function drawCurvesEditor() {
+    const canvas = elements.curvesCanvas;
+    if (!canvas) return;
+    const cCtx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    cCtx.clearRect(0, 0, W, H);
+
+    // 背景
+    cCtx.fillStyle = '#1a1a2e';
+    cCtx.fillRect(0, 0, W, H);
+
+    // Histogram 背景
+    const hist = computeHistogram();
+    if (hist) {
+        let maxVal = 0;
+        for (let i = 0; i < 256; i++) if (hist[i] > maxVal) maxVal = hist[i];
+        if (maxVal > 0) {
+            cCtx.fillStyle = 'rgba(255,255,255,0.08)';
+            for (let i = 0; i < 256; i++) {
+                const barH = (hist[i] / maxVal) * H;
+                cCtx.fillRect(i, H - barH, 1, barH);
+            }
+        }
+    }
+
+    // 格線
+    cCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+    cCtx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const pos = Math.round(W * i / 4) + 0.5;
+        cCtx.beginPath();
+        cCtx.moveTo(pos, 0);
+        cCtx.lineTo(pos, H);
+        cCtx.stroke();
+        cCtx.beginPath();
+        cCtx.moveTo(0, pos);
+        cCtx.lineTo(W, pos);
+        cCtx.stroke();
+    }
+
+    // 對角線（參考）
+    cCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+    cCtx.setLineDash([4, 4]);
+    cCtx.beginPath();
+    cCtx.moveTo(0, H);
+    cCtx.lineTo(W, 0);
+    cCtx.stroke();
+    cCtx.setLineDash([]);
+
+    // 曲線顏色
+    const channelColors = {
+        master: '#ffffff',
+        r: '#ff6060',
+        g: '#60ff60',
+        b: '#6080ff',
+    };
+
+    const ch = state.activeCurveChannel;
+    const pts = state.curves[ch];
+    const color = channelColors[ch];
+
+    // 繪製曲線
+    const interp = monotoneCubicSpline(pts);
+    cCtx.strokeStyle = color;
+    cCtx.lineWidth = 2;
+    cCtx.beginPath();
+    for (let x = 0; x < 256; x++) {
+        const y = Math.max(0, Math.min(255, interp(x)));
+        const cx = x;
+        const cy = H - y * H / 255;
+        if (x === 0) cCtx.moveTo(cx, cy);
+        else cCtx.lineTo(cx, cy);
+    }
+    cCtx.stroke();
+
+    // 繪製控制點
+    pts.forEach(p => {
+        const cx = p.x;
+        const cy = H - p.y * H / 255;
+        cCtx.beginPath();
+        cCtx.arc(cx, cy, 5, 0, Math.PI * 2);
+        cCtx.fillStyle = color;
+        cCtx.fill();
+        cCtx.strokeStyle = '#ffffff';
+        cCtx.lineWidth = 1.5;
+        cCtx.stroke();
+    });
+}
+
+/**
+ * 初始化曲線編輯器的事件處理
+ */
+function initCurvesEditor() {
+    const canvas = elements.curvesCanvas;
+    if (!canvas) return;
+
+    let draggingIdx = -1;
+
+    function canvasToPoint(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: Math.round((e.clientX - rect.left) * scaleX),
+            y: Math.round(255 - (e.clientY - rect.top) * scaleY * 255 / canvas.height),
+        };
+    }
+
+    function findNearestPoint(mx, my) {
+        const ch = state.activeCurveChannel;
+        const pts = state.curves[ch];
+        const H = canvas.height;
+        let bestDist = Infinity;
+        let bestIdx = -1;
+        pts.forEach((p, i) => {
+            const cx = p.x;
+            const cy = H - p.y * H / 255;
+            const dist = Math.sqrt((mx - cx) ** 2 + (my - cy) ** 2);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestIdx = i;
+            }
+        });
+        return bestDist < 12 ? bestIdx : -1;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        const idx = findNearestPoint(mx, my);
+        if (idx >= 0) {
+            draggingIdx = idx;
+        } else {
+            // 新增控制點
+            const pt = canvasToPoint(e);
+            pt.x = Math.max(0, Math.min(255, pt.x));
+            pt.y = Math.max(0, Math.min(255, pt.y));
+            const ch = state.activeCurveChannel;
+            state.curves[ch].push(pt);
+            state.curves[ch].sort((a, b) => a.x - b.x);
+            draggingIdx = state.curves[ch].indexOf(pt);
+            onCurveChanged();
+        }
+        e.preventDefault();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (draggingIdx < 0) return;
+        const ch = state.activeCurveChannel;
+        const pts = state.curves[ch];
+        // 端點只能垂直拖（鎖定 x=0 或 x=255）
+        const isEndpoint = draggingIdx === 0 || draggingIdx === pts.length - 1;
+        const pt = canvasToPoint(e);
+        if (isEndpoint) {
+            pts[draggingIdx].y = Math.max(0, Math.min(255, pt.y));
+        } else {
+            // 中間點：x 限制在相鄰點之間
+            const minX = pts[draggingIdx - 1].x + 1;
+            const maxX = pts[draggingIdx + 1].x - 1;
+            pts[draggingIdx].x = Math.max(minX, Math.min(maxX, pt.x));
+            pts[draggingIdx].y = Math.max(0, Math.min(255, pt.y));
+        }
+        onCurveChanged();
+        e.preventDefault();
+    });
+
+    document.addEventListener('mouseup', () => {
+        draggingIdx = -1;
+    });
+
+    // 雙擊刪除控制點（端點除外）
+    canvas.addEventListener('dblclick', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        const ch = state.activeCurveChannel;
+        const idx = findNearestPoint(mx, my);
+        if (idx > 0 && idx < state.curves[ch].length - 1) {
+            state.curves[ch].splice(idx, 1);
+            onCurveChanged();
+        }
+        e.preventDefault();
+    });
+
+    // Tab 切換
+    document.querySelectorAll('.curves-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.curves-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.activeCurveChannel = tab.dataset.channel;
+            drawCurvesEditor();
+        });
+    });
+
+    // 收合/展開
+    elements.curvesHeader.addEventListener('click', () => {
+        const panel = elements.curvesPanel;
+        const icon = elements.curvesToggleIcon;
+        panel.classList.toggle('nordic-hidden');
+        icon.classList.toggle('expanded');
+        if (!panel.classList.contains('nordic-hidden')) {
+            drawCurvesEditor();
+        }
+    });
+
+    // 重置曲線
+    elements.btnResetCurves.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetCurves();
+    });
+}
+
+function onCurveChanged() {
+    rebuildAllCurveLUTs();
+    drawCurvesEditor();
+    applyAllEffects();
 }
 
 // ========================================
@@ -2718,6 +3134,9 @@ function initEventListeners() {
 
     // 去背編輯筆刷
     initMaskEditHandlers();
+
+    // 曲線編輯器
+    initCurvesEditor();
 }
 
 // 裁切區域拖曳處理（改進版 - 支援四邊拖曳和縮放）

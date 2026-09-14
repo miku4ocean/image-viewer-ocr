@@ -332,6 +332,108 @@ body {
 }
 
 /* ----------------------------------------
+   Curves Editor - 曲線調整
+   ---------------------------------------- */
+.curves-section {
+    margin-bottom: var(--nordic-spacing-md);
+}
+
+.curves-header {
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-xs);
+    padding: var(--nordic-spacing-sm) 0;
+    cursor: pointer;
+    font-size: var(--nordic-font-size-sm);
+    color: var(--nordic-text-secondary);
+    user-select: none;
+}
+
+.curves-header:hover {
+    color: var(--nordic-text-primary);
+}
+
+.curves-toggle-icon {
+    margin-left: auto;
+    font-size: 10px;
+    transition: transform var(--nordic-transition-fast);
+}
+
+.curves-toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.curves-panel {
+    margin-top: var(--nordic-spacing-sm);
+}
+
+.curves-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--nordic-spacing-sm);
+}
+
+.curves-tab {
+    flex: 1;
+    padding: var(--nordic-spacing-xs) var(--nordic-spacing-sm);
+    font-size: var(--nordic-font-size-xs);
+    font-weight: var(--nordic-font-weight-medium);
+    background: var(--nordic-bg-tertiary);
+    border: 1px solid var(--nordic-border-color);
+    border-radius: var(--nordic-radius-sm);
+    cursor: pointer;
+    color: var(--nordic-text-secondary);
+    transition: all var(--nordic-transition-fast);
+}
+
+.curves-tab:hover {
+    background: var(--nordic-bg-hover);
+}
+
+.curves-tab.active {
+    background: var(--nordic-accent-primary);
+    color: var(--nordic-text-inverse);
+    border-color: var(--nordic-accent-primary);
+}
+
+.curves-tab-r.active {
+    background: #c04040;
+    border-color: #c04040;
+}
+
+.curves-tab-g.active {
+    background: #40a040;
+    border-color: #40a040;
+}
+
+.curves-tab-b.active {
+    background: #4060c0;
+    border-color: #4060c0;
+}
+
+.curves-canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1px solid var(--nordic-border-color);
+    border-radius: var(--nordic-radius-sm);
+    overflow: hidden;
+    background: var(--nordic-bg-tertiary);
+}
+
+.curves-canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+}
+
+.curves-reset-btn {
+    width: 100%;
+    margin-top: var(--nordic-spacing-sm);
+}
+
+/* ----------------------------------------
    Canvas Area - 圖片顯示區
    ---------------------------------------- */
 .canvas-area {

@@ -483,6 +483,29 @@
                         </div>
                         <input type="range" class="nordic-slider" id="slider-sharpness" min="0" max="100" value="0">
                     </div>
+
+                    <div class="adjustment-divider"></div>
+
+                    <!-- 曲線調整 -->
+                    <div class="curves-section" id="curves-section">
+                        <div class="curves-header" id="curves-header">
+                            <span class="adjustment-icon">📈</span>
+                            <span>曲線調整</span>
+                            <span class="curves-toggle-icon" id="curves-toggle-icon">▶</span>
+                        </div>
+                        <div class="curves-panel nordic-hidden" id="curves-panel">
+                            <div class="curves-tabs">
+                                <button class="curves-tab active" data-channel="master">Master</button>
+                                <button class="curves-tab curves-tab-r" data-channel="r">R</button>
+                                <button class="curves-tab curves-tab-g" data-channel="g">G</button>
+                                <button class="curves-tab curves-tab-b" data-channel="b">B</button>
+                            </div>
+                            <div class="curves-canvas-wrap">
+                                <canvas id="curves-canvas" width="256" height="256"></canvas>
+                            </div>
+                            <button class="nordic-btn nordic-btn-secondary nordic-btn-sm curves-reset-btn" id="btn-reset-curves">重置曲線</button>
+                        </div>
+                    </div>
                 </div>
             </aside>
         </main>
