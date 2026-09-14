@@ -284,6 +284,52 @@ body {
     filter: saturate(200%) contrast(150%) brightness(105%);
 }
 
+/* 藝術風格濾鏡分隔線 */
+.filter-grid-divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--nordic-spacing-sm);
+    padding: var(--nordic-spacing-xs) 0;
+    margin: var(--nordic-spacing-xs) 0;
+}
+
+.filter-grid-divider::before,
+.filter-grid-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--nordic-border);
+}
+
+.filter-grid-divider span {
+    font-size: var(--nordic-font-size-xs);
+    color: var(--nordic-text-tertiary);
+    white-space: nowrap;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+/* 藝術風格濾鏡預覽縮圖 */
+.filter-preview.artistic-preview {
+    background: linear-gradient(135deg, #d4d8dc 0%, #f0f1f3 40%, #bcc4cc 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.filter-preview.artistic-preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.06) 3px,
+        rgba(0, 0, 0, 0.06) 4px
+    );
+}
+
 .filter-item span {
     font-size: var(--nordic-font-size-xs);
     color: var(--nordic-text-secondary);

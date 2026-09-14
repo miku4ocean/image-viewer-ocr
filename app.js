@@ -23,6 +23,7 @@ const state = {
     // 編輯狀態
     zoom: 1,
     activeFilter: 'none',
+    activeArtisticFilter: 'none',
     adjustments: {
         exposure: 0,
         contrast: 0,
@@ -398,6 +399,7 @@ function closeImage() {
     state.historyIndex = -1;
     state.zoom = 1;
     state.activeFilter = 'none';
+    state.activeArtisticFilter = 'none';
     state.isCropping = false;
     state.isOCRMode = false;
     state.isMaskEditing = false;
@@ -790,6 +792,550 @@ const filters = {
     pop: 'saturate(200%) contrast(150%) brightness(105%)'
 };
 
+// ========================================
+// 6.1 藝術風格濾鏡（Canvas 像素運算）
+// ========================================
+
+const artisticFilters = {
+    // --- 工具函式 ---
+
+    /** 偽隨機噪點（座標 hash） */
+    _noise: function(x, y) {
+        let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        return n - Math.floor(n);
+    },
+
+    /** Sobel 邊緣偵測，回傳 Float32Array 邊緣強度 */
+    _sobelEdges: function(src, w, h) {
+        const gray = new Float32Array(w * h);
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            gray[i] = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+        }
+        const mag = new Float32Array(w * h);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i00 = gray[(y - 1) * w + x - 1], i10 = gray[(y - 1) * w + x], i20 = gray[(y - 1) * w + x + 1];
+                const i01 = gray[y * w + x - 1], i21 = gray[y * w + x + 1];
+                const i02 = gray[(y + 1) * w + x - 1], i12 = gray[(y + 1) * w + x], i22 = gray[(y + 1) * w + x + 1];
+                const gx = -i00 + i20 - 2 * i01 + 2 * i21 - i02 + i22;
+                const gy = -i00 - 2 * i10 - i20 + i02 + 2 * i12 + i22;
+                mag[y * w + x] = Math.sqrt(gx * gx + gy * gy);
+            }
+        }
+        return mag;
+    },
+
+    /** 可分離式盒狀模糊，回傳新的 Uint8ClampedArray */
+    _boxBlur: function(src, w, h, r) {
+        const len = src.length;
+        const tmp = new Uint8ClampedArray(len);
+        const dst = new Uint8ClampedArray(len);
+        const d = 2 * r + 1;
+
+        // 水平 pass
+        for (let y = 0; y < h; y++) {
+            for (let c = 0; c < 4; c++) {
+                let sum = 0;
+                for (let dx = -r; dx <= r; dx++) {
+                    sum += src[(y * w + Math.max(0, Math.min(w - 1, dx))) * 4 + c];
+                }
+                tmp[y * w * 4 + c] = sum / d;
+                for (let x = 1; x < w; x++) {
+                    sum += src[(y * w + Math.min(w - 1, x + r)) * 4 + c]
+                         - src[(y * w + Math.max(0, x - r - 1)) * 4 + c];
+                    tmp[(y * w + x) * 4 + c] = sum / d;
+                }
+            }
+        }
+
+        // 垂直 pass
+        for (let x = 0; x < w; x++) {
+            for (let c = 0; c < 4; c++) {
+                let sum = 0;
+                for (let dy = -r; dy <= r; dy++) {
+                    sum += tmp[(Math.max(0, Math.min(h - 1, dy)) * w + x) * 4 + c];
+                }
+                dst[x * 4 + c] = sum / d;
+                for (let y = 1; y < h; y++) {
+                    sum += tmp[(Math.min(h - 1, y + r) * w + x) * 4 + c]
+                         - tmp[(Math.max(0, y - r - 1) * w + x) * 4 + c];
+                    dst[(y * w + x) * 4 + c] = sum / d;
+                }
+            }
+        }
+        return dst;
+    },
+
+    // -------------------------------------------------------
+    // 1. 黑白鉛筆素描 — Sobel edge + color dodge blend
+    // -------------------------------------------------------
+    pencilBW: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+        const blurred = this._boxBlur(src, w, h, 5);
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const gray = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+            const blurGray = 0.299 * blurred[idx] + 0.587 * blurred[idx + 1] + 0.114 * blurred[idx + 2];
+
+            // 反轉邊緣 → 鉛筆線條
+            const edgeVal = 255 - Math.min(255, edges[i] * 1.5);
+
+            // Color dodge blend
+            const invBlur = 255 - blurGray;
+            const dodged = invBlur >= 254 ? 255 : Math.min(255, gray * 256 / (256 - invBlur));
+
+            const result = Math.min(255, edgeVal * 0.4 + dodged * 0.6);
+            data[idx] = data[idx + 1] = data[idx + 2] = result;
+        }
+    },
+
+    // -------------------------------------------------------
+    // 2. 彩色鉛筆素描 — 邊緣 × 低飽和度原色
+    // -------------------------------------------------------
+    pencilColor: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+        const blurred = this._boxBlur(src, w, h, 5);
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const gray = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+            const blurGray = 0.299 * blurred[idx] + 0.587 * blurred[idx + 1] + 0.114 * blurred[idx + 2];
+
+            const edgeVal = 255 - Math.min(255, edges[i] * 1.5);
+            const invBlur = 255 - blurGray;
+            const dodged = invBlur >= 254 ? 255 : Math.min(255, gray * 256 / (256 - invBlur));
+            const pencil = Math.min(255, edgeVal * 0.4 + dodged * 0.6);
+
+            // 低飽和度原色（保留 30% 彩度）
+            const desat = 0.7;
+            const lr = gray + (src[idx] - gray) * (1 - desat);
+            const lg = gray + (src[idx + 1] - gray) * (1 - desat);
+            const lb = gray + (src[idx + 2] - gray) * (1 - desat);
+
+            // Multiply blend
+            data[idx]     = Math.min(255, pencil * lr / 255);
+            data[idx + 1] = Math.min(255, pencil * lg / 255);
+            data[idx + 2] = Math.min(255, pencil * lb / 255);
+        }
+    },
+
+    // -------------------------------------------------------
+    // 3. 黑白水墨畫 — 多層閾值 + 宣紙紋理
+    // -------------------------------------------------------
+    inkWash: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const blur2 = this._boxBlur(src, w, h, 2);
+        const blur5 = this._boxBlur(src, w, h, 5);
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const gray = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+
+            let ink;
+            if (gray < 60) {
+                // 濃墨
+                const bg = 0.299 * blur2[idx] + 0.587 * blur2[idx + 1] + 0.114 * blur2[idx + 2];
+                ink = bg * 0.3;
+            } else if (gray < 120) {
+                // 中墨
+                const bg = 0.299 * blur5[idx] + 0.587 * blur5[idx + 1] + 0.114 * blur5[idx + 2];
+                ink = bg * 0.6;
+            } else if (gray < 180) {
+                // 淡墨
+                const bg = 0.299 * blur5[idx] + 0.587 * blur5[idx + 1] + 0.114 * blur5[idx + 2];
+                ink = bg * 0.85;
+            } else {
+                ink = 240 + (gray - 180) * 0.2;
+            }
+
+            // 宣紙纖維紋理
+            const x = i % w, y = (i / w) | 0;
+            const fiber = this._noise(x * 0.5, y * 0.5) * 15 - 7;
+
+            const v = Math.max(0, Math.min(255, ink + fiber));
+            data[idx] = v;
+            data[idx + 1] = v;
+            data[idx + 2] = v * 0.98; // 微暖色調
+        }
+    },
+
+    // -------------------------------------------------------
+    // 4. 彩色水彩畫 — 色彩平滑 + 量化 + 紙紋理
+    // -------------------------------------------------------
+    watercolor: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const smoothed = this._boxBlur(src, w, h, 3);
+        const levels = 6;
+        const step = 256 / levels;
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            let r = Math.round(smoothed[idx] / step) * step;
+            let g = Math.round(smoothed[idx + 1] / step) * step;
+            let b = Math.round(smoothed[idx + 2] / step) * step;
+
+            // 水彩紙紋理
+            const x = i % w, y = (i / w) | 0;
+            const n1 = this._noise(x * 0.3, y * 0.3);
+            const n2 = this._noise(x * 0.7 + 100, y * 0.7 + 100);
+            const tex = (n1 * 0.6 + n2 * 0.4) * 25 - 8;
+
+            // 水彩透明感
+            data[idx]     = Math.max(0, Math.min(255, r * 0.9 + 25 + tex));
+            data[idx + 1] = Math.max(0, Math.min(255, g * 0.9 + 25 + tex));
+            data[idx + 2] = Math.max(0, Math.min(255, b * 0.9 + 25 + tex));
+        }
+    },
+
+    // -------------------------------------------------------
+    // 5. 代針筆簡筆畫 — 高閾值 Sobel，乾淨黑線白底
+    // -------------------------------------------------------
+    technicalPen: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+
+        let maxEdge = 0;
+        for (let i = 0; i < edges.length; i++) {
+            if (edges[i] > maxEdge) maxEdge = edges[i];
+        }
+        const threshold = maxEdge * 0.25;
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const val = edges[i] > threshold ? 0 : 255;
+            data[idx] = data[idx + 1] = data[idx + 2] = val;
+        }
+    },
+
+    // -------------------------------------------------------
+    // 5b. 麥克筆畫 — 粗邊緣 + 色彩量化 + 半透明筆觸紋理
+    // -------------------------------------------------------
+    markerPen: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+
+        // 色彩量化成 4 階（麥克筆色階少）
+        const quantize = (v) => Math.round(v / 85) * 85;
+
+        // 找最大邊緣值做正規化
+        let maxEdge = 0;
+        for (let i = 0; i < edges.length; i++) {
+            if (edges[i] > maxEdge) maxEdge = edges[i];
+        }
+        const edgeThreshold = maxEdge * 0.15; // 較低閾值 = 更多線條
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            let r = src[idx], g = src[idx + 1], b = src[idx + 2];
+
+            // 色彩量化 + 略增飽和度（麥克筆顏色鮮豔）
+            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            const sat = 1.4;
+            r = gray + sat * (r - gray);
+            g = gray + sat * (g - gray);
+            b = gray + sat * (b - gray);
+            r = quantize(Math.max(0, Math.min(255, r)));
+            g = quantize(Math.max(0, Math.min(255, g)));
+            b = quantize(Math.max(0, Math.min(255, b)));
+
+            // 筆觸紋理：用座標 hash 產生不均勻的明度變化
+            const x = i % w, y = (i / w) | 0;
+            const streak = Math.sin(x * 0.8 + y * 0.3) * 0.08 + Math.sin(y * 1.2) * 0.05;
+            r = Math.max(0, Math.min(255, r * (1 + streak)));
+            g = Math.max(0, Math.min(255, g * (1 + streak)));
+            b = Math.max(0, Math.min(255, b * (1 + streak)));
+
+            // 粗邊緣線（膨脹 Sobel：取 3x3 鄰域最大值）
+            let maxE = edges[i];
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                        const ne = edges[ny * w + nx];
+                        if (ne > maxE) maxE = ne;
+                    }
+                }
+            }
+
+            if (maxE > edgeThreshold) {
+                // 深色邊緣線（不是純黑，帶一點色）
+                const edgeStrength = Math.min(1, (maxE - edgeThreshold) / (maxEdge * 0.3));
+                r = r * (1 - edgeStrength * 0.85);
+                g = g * (1 - edgeStrength * 0.85);
+                b = b * (1 - edgeStrength * 0.85);
+            }
+
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+        }
+    },
+
+    // -------------------------------------------------------
+    // 6. 草稿畫 — 邊緣 + 隨機偏移 + 斷線 + 噪點
+    // -------------------------------------------------------
+    roughSketch: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+
+        let maxEdge = 0;
+        for (let i = 0; i < edges.length; i++) {
+            if (edges[i] > maxEdge) maxEdge = edges[i];
+        }
+        const threshold = maxEdge * 0.15;
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const x = i % w, y = (i / w) | 0;
+
+            // 模擬手抖偏移
+            const ox = (this._noise(x * 7.3, y * 3.1) * 3 - 1) | 0;
+            const oy = (this._noise(x * 5.7, y * 9.3) * 3 - 1) | 0;
+            const ni = Math.max(0, Math.min(w * h - 1, (y + oy) * w + (x + ox)));
+
+            // 隨機斷線
+            const breakChance = this._noise(x * 11.1, y * 13.7);
+
+            let val;
+            if (edges[ni] > threshold && breakChance > 0.15) {
+                val = 30 + this._noise(x * 2.3, y * 4.7) * 40;
+            } else {
+                val = 245 + this._noise(x * 1.1, y * 1.3) * 10;
+            }
+            data[idx] = data[idx + 1] = data[idx + 2] = val;
+        }
+    },
+
+    // -------------------------------------------------------
+    // 7. 漫畫 — Posterize + 粗黑邊 + 網點
+    // -------------------------------------------------------
+    comic: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const edges = this._sobelEdges(src, w, h);
+        const levels = 5;
+        const step = 256 / levels;
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            const x = i % w, y = (i / w) | 0;
+
+            // Posterize
+            let r = Math.round(src[idx] / step) * step;
+            let g = Math.round(src[idx + 1] / step) * step;
+            let b = Math.round(src[idx + 2] / step) * step;
+
+            // 亮部網點（halftone）
+            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (gray > 180) {
+                const dotSize = 4;
+                const cx = (x % dotSize) - dotSize / 2;
+                const cy = (y % dotSize) - dotSize / 2;
+                const dist = Math.sqrt(cx * cx + cy * cy);
+                const dotR = ((gray - 180) / 75) * (dotSize / 2);
+                if (dist > dotR) { r *= 0.85; g *= 0.85; b *= 0.85; }
+            }
+
+            // 粗黑邊框（Sobel + 1px 膨脹）
+            let maxE = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = Math.max(0, Math.min(w - 1, x + dx));
+                    const ny = Math.max(0, Math.min(h - 1, y + dy));
+                    maxE = Math.max(maxE, edges[ny * w + nx]);
+                }
+            }
+            if (maxE > 40) {
+                const ef = Math.min(1, maxE / 80);
+                r *= (1 - ef); g *= (1 - ef); b *= (1 - ef);
+            }
+
+            data[idx]     = Math.max(0, Math.min(255, r));
+            data[idx + 1] = Math.max(0, Math.min(255, g));
+            data[idx + 2] = Math.max(0, Math.min(255, b));
+        }
+    },
+
+    // -------------------------------------------------------
+    // 8. 油畫效果 — 簡化 Kuwahara filter
+    // -------------------------------------------------------
+    oilPaint: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const R = 4;
+
+        const quads = [[-R, -R, 0, 0], [0, -R, R, 0], [-R, 0, 0, R], [0, 0, R, R]];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const idx = (y * w + x) * 4;
+                let bestVar = Infinity, bestR = 0, bestG = 0, bestB = 0;
+
+                for (const [x1, y1, x2, y2] of quads) {
+                    let sR = 0, sG = 0, sB = 0, sR2 = 0, sG2 = 0, sB2 = 0, cnt = 0;
+
+                    for (let dy = y1; dy <= y2; dy++) {
+                        const sy = y + dy;
+                        if (sy < 0 || sy >= h) continue;
+                        for (let dx = x1; dx <= x2; dx++) {
+                            const sx = x + dx;
+                            if (sx < 0 || sx >= w) continue;
+                            const si = (sy * w + sx) * 4;
+                            const pr = src[si], pg = src[si + 1], pb = src[si + 2];
+                            sR += pr; sG += pg; sB += pb;
+                            sR2 += pr * pr; sG2 += pg * pg; sB2 += pb * pb;
+                            cnt++;
+                        }
+                    }
+                    if (cnt > 0) {
+                        const aR = sR / cnt, aG = sG / cnt, aB = sB / cnt;
+                        const v = (sR2 / cnt - aR * aR) + (sG2 / cnt - aG * aG) + (sB2 / cnt - aB * aB);
+                        if (v < bestVar) { bestVar = v; bestR = aR; bestG = aG; bestB = aB; }
+                    }
+                }
+                data[idx]     = Math.max(0, Math.min(255, bestR));
+                data[idx + 1] = Math.max(0, Math.min(255, bestG));
+                data[idx + 2] = Math.max(0, Math.min(255, bestB));
+            }
+        }
+    },
+
+    // -------------------------------------------------------
+    // 9. 針織繡線 — 4×4 格 + 交叉十字紋 + 布紋理
+    // -------------------------------------------------------
+    embroidery: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const cs = 4; // cell size
+
+        for (let cy = 0; cy < h; cy += cs) {
+            for (let cx = 0; cx < w; cx += cs) {
+                // 取格平均色
+                let sR = 0, sG = 0, sB = 0, cnt = 0;
+                for (let dy = 0; dy < cs && cy + dy < h; dy++) {
+                    for (let dx = 0; dx < cs && cx + dx < w; dx++) {
+                        const si = ((cy + dy) * w + (cx + dx)) * 4;
+                        sR += src[si]; sG += src[si + 1]; sB += src[si + 2];
+                        cnt++;
+                    }
+                }
+                const aR = sR / cnt, aG = sG / cnt, aB = sB / cnt;
+
+                for (let dy = 0; dy < cs && cy + dy < h; dy++) {
+                    for (let dx = 0; dx < cs && cx + dx < w; dx++) {
+                        const di = ((cy + dy) * w + (cx + dx)) * 4;
+                        const isOnCross = (dx === dy) || (dx === cs - 1 - dy);
+                        const nx = cx + dx, ny = cy + dy;
+                        const texMod = 1 + (this._noise(nx * 1.5, ny * 1.5) - 0.5) * 0.15;
+
+                        if (isOnCross) {
+                            data[di]     = Math.max(0, Math.min(255, aR * texMod));
+                            data[di + 1] = Math.max(0, Math.min(255, aG * texMod));
+                            data[di + 2] = Math.max(0, Math.min(255, aB * texMod));
+                        } else {
+                            // 底布（淺米色）
+                            data[di]     = Math.min(255, 235 * texMod);
+                            data[di + 1] = Math.min(255, 225 * texMod);
+                            data[di + 2] = Math.min(255, 210 * texMod);
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    // -------------------------------------------------------
+    // 10. 玻璃光材質 — 位移映射 + 高光 + 增對比
+    // -------------------------------------------------------
+    glass: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+        const strength = 8;
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const idx = (y * w + x) * 4;
+
+                // 亮度梯度 → 位移量
+                const lG = 0.299 * src[(y * w + x - 1) * 4] + 0.587 * src[(y * w + x - 1) * 4 + 1] + 0.114 * src[(y * w + x - 1) * 4 + 2];
+                const rG = 0.299 * src[(y * w + x + 1) * 4] + 0.587 * src[(y * w + x + 1) * 4 + 1] + 0.114 * src[(y * w + x + 1) * 4 + 2];
+                const tG = 0.299 * src[((y - 1) * w + x) * 4] + 0.587 * src[((y - 1) * w + x) * 4 + 1] + 0.114 * src[((y - 1) * w + x) * 4 + 2];
+                const bG = 0.299 * src[((y + 1) * w + x) * 4] + 0.587 * src[((y + 1) * w + x) * 4 + 1] + 0.114 * src[((y + 1) * w + x) * 4 + 2];
+
+                const dx = ((rG - lG) / 255 * strength) | 0;
+                const dy = ((bG - tG) / 255 * strength) | 0;
+
+                const sx = Math.max(0, Math.min(w - 1, x + dx));
+                const sy = Math.max(0, Math.min(h - 1, y + dy));
+                const si = (sy * w + sx) * 4;
+
+                let r = src[si], g = src[si + 1], b = src[si + 2];
+
+                // 增對比
+                r = Math.max(0, Math.min(255, (r - 128) * 1.2 + 128));
+                g = Math.max(0, Math.min(255, (g - 128) * 1.2 + 128));
+                b = Math.max(0, Math.min(255, (b - 128) * 1.2 + 128));
+
+                // 亮區高光
+                const br = 0.299 * r + 0.587 * g + 0.114 * b;
+                if (br > 200) {
+                    const glow = (br - 200) / 55 * 60;
+                    r = Math.min(255, r + glow);
+                    g = Math.min(255, g + glow);
+                    b = Math.min(255, b + glow);
+                }
+
+                data[idx] = r; data[idx + 1] = g; data[idx + 2] = b;
+            }
+        }
+    },
+
+    // -------------------------------------------------------
+    // 11. 金屬光材質 — 灰階 + S 曲線 + 銀色調映射
+    // -------------------------------------------------------
+    metallic: function(imageData, w, h) {
+        const src = new Uint8ClampedArray(imageData.data);
+        const data = imageData.data;
+
+        for (let i = 0; i < w * h; i++) {
+            const idx = i * 4;
+            let gray = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+
+            // S 曲線非線性對比
+            const n = gray / 255;
+            gray = (n < 0.5 ? 2 * n * n : 1 - 2 * (1 - n) * (1 - n)) * 255;
+
+            // 銀色金屬映射
+            let r, g, b;
+            if (gray < 85) {
+                const t = gray / 85;
+                r = 30 + t * 60;  g = 35 + t * 65;  b = 45 + t * 75;
+            } else if (gray < 170) {
+                const t = (gray - 85) / 85;
+                r = 90 + t * 100; g = 100 + t * 95; b = 120 + t * 80;
+            } else {
+                const t = (gray - 170) / 85;
+                r = 190 + t * 65; g = 195 + t * 60; b = 200 + t * 55;
+            }
+
+            data[idx]     = Math.max(0, Math.min(255, r));
+            data[idx + 1] = Math.max(0, Math.min(255, g));
+            data[idx + 2] = Math.max(0, Math.min(255, b));
+        }
+    }
+};
+
 function applyAllEffects() {
     if (!state.originalImage) return;
 
@@ -913,6 +1459,15 @@ function applyAllEffects() {
 
     ctx.putImageData(imageData, 0, 0);
 
+    // 藝術風格濾鏡（需要鄰域運算，獨立 pass）
+    if (state.activeArtisticFilter !== 'none' && artisticFilters[state.activeArtisticFilter]) {
+        const artW = elements.imageCanvas.width;
+        const artH = elements.imageCanvas.height;
+        const artData = ctx.getImageData(0, 0, artW, artH);
+        artisticFilters[state.activeArtisticFilter](artData, artW, artH);
+        ctx.putImageData(artData, 0, 0);
+    }
+
     // 清晰度（Unsharp Mask）
     if (state.adjustments.sharpness > 0) {
         const amount = state.adjustments.sharpness / 100;
@@ -973,6 +1528,7 @@ function resetAdjustments() {
         sharpness: 0
     };
     state.activeFilter = 'none';
+    state.activeArtisticFilter = 'none';
 
     // 同時重置曲線
     state.curves = {
@@ -1002,7 +1558,11 @@ function updateSliderValues() {
 
 function updateFilterSelection() {
     document.querySelectorAll('.filter-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.filter === state.activeFilter);
+        if (item.dataset.artisticFilter) {
+            item.classList.toggle('active', item.dataset.artisticFilter === state.activeArtisticFilter);
+        } else {
+            item.classList.toggle('active', item.dataset.filter === state.activeFilter);
+        }
     });
 }
 
@@ -2790,6 +3350,13 @@ function saveImage() {
 
     outputCtx.putImageData(imageData, 0, 0);
 
+    // 套用藝術風格濾鏡到輸出畫布
+    if (state.activeArtisticFilter !== 'none' && artisticFilters[state.activeArtisticFilter]) {
+        const artData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+        artisticFilters[state.activeArtisticFilter](artData, outputCanvas.width, outputCanvas.height);
+        outputCtx.putImageData(artData, 0, 0);
+    }
+
     // 清晰度（Unsharp Mask）
     if (state.adjustments.sharpness > 0) {
         const amount = state.adjustments.sharpness / 100;
@@ -3032,11 +3599,27 @@ function initEventListeners() {
         });
     }
 
-    // 濾鏡
+    // 濾鏡（CSS 濾鏡 + 藝術風格濾鏡）
     elements.filterGrid.addEventListener('click', (e) => {
         const filterItem = e.target.closest('.filter-item');
-        if (filterItem) {
+        if (!filterItem) return;
+
+        if (filterItem.dataset.artisticFilter) {
+            // 藝術風格濾鏡
+            const name = filterItem.dataset.artisticFilter;
+            if (state.activeArtisticFilter === name) {
+                state.activeArtisticFilter = 'none'; // toggle off
+            } else {
+                state.activeArtisticFilter = name;
+            }
+            state.activeFilter = 'none';
+            showLoading('套用濾鏡中...');
+            updateFilterSelection();
+            setTimeout(() => { applyAllEffects(); hideLoading(); }, 0);
+        } else {
+            // CSS 濾鏡
             state.activeFilter = filterItem.dataset.filter;
+            state.activeArtisticFilter = 'none';
             updateFilterSelection();
             applyAllEffects();
         }
