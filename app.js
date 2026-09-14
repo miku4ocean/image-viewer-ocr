@@ -32,6 +32,7 @@ const state = {
         temperature: 0,
         tint: 0,
         sepia: 0,
+        hue: 0,
         sharpness: 0
     },
 
@@ -113,6 +114,7 @@ const elements = {
         temperature: document.getElementById('slider-temperature'),
         tint: document.getElementById('slider-tint'),
         sepia: document.getElementById('slider-sepia'),
+        hue: document.getElementById('slider-hue'),
         sharpness: document.getElementById('slider-sharpness')
     },
     values: {
@@ -124,6 +126,7 @@ const elements = {
         temperature: document.getElementById('value-temperature'),
         tint: document.getElementById('value-tint'),
         sepia: document.getElementById('value-sepia'),
+        hue: document.getElementById('value-hue'),
         sharpness: document.getElementById('value-sharpness')
     },
     btnAutoAdjust: document.getElementById('btn-auto-adjust'),
@@ -869,6 +872,29 @@ function applyAllEffects() {
             b = b * (1 - sep) + tb * sep;
         }
 
+        // 色相旋轉（HSL 空間）
+        if (state.adjustments.hue !== 0) {
+            const rn = r / 255, gn = g / 255, bn = b / 255;
+            const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+            const d = max - min;
+            let h = 0, s = 0, l = (max + min) / 2;
+            if (d > 0) {
+                s = l > 0.5 ? d / (2 - max - min) : d / (max - min);
+                if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+                else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+                else h = ((rn - gn) / d + 4) / 6;
+            }
+            h = (h + state.adjustments.hue / 360 + 1) % 1;
+            if (s === 0) { r = g = b = l * 255; } else {
+                const hue2rgb = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3) * 255;
+                g = hue2rgb(p, q, h) * 255;
+                b = hue2rgb(p, q, h - 1/3) * 255;
+            }
+        }
+
         // 曲線 LUT 映射（在所有調整之後、最終 clamp 之前）
         if (curveLUT) {
             r = curveLUT.r[Math.max(0, Math.min(255, Math.round(r)))];
@@ -943,6 +969,7 @@ function resetAdjustments() {
         temperature: 0,
         tint: 0,
         sepia: 0,
+        hue: 0,
         sharpness: 0
     };
     state.activeFilter = 'none';
@@ -968,7 +995,7 @@ function updateSliderValues() {
             elements.sliders[key].value = state.adjustments[key];
         }
         if (elements.values[key]) {
-            elements.values[key].textContent = state.adjustments[key];
+            elements.values[key].textContent = key === 'hue' ? state.adjustments[key] + '°' : state.adjustments[key];
         }
     });
 }
@@ -3020,7 +3047,7 @@ function initEventListeners() {
         if (elements.sliders[key]) {
             elements.sliders[key].addEventListener('input', (e) => {
                 state.adjustments[key] = parseInt(e.target.value);
-                elements.values[key].textContent = e.target.value;
+                elements.values[key].textContent = key === 'hue' ? e.target.value + '°' : e.target.value;
                 applyAllEffects();
             });
         }
