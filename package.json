@@ -1,45 +1,46 @@
 {
-    "name": "image-viewer-ocr",
+  "name": "image-viewer-ocr",
+  "productName": "Image Viewer OCR",
+  "version": "1.4.0",
+  "description": "圖片檢視器 - 支援濾鏡、調整、OCR文字辨識、AI去背",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg",
+    "serve": "npx serve -l 3456 .",
+    "test:e2e": "playwright test",
+    "test": "npx playwright test"
+  },
+  "author": "miku4ocean",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.62.0"
+  },
+  "build": {
+    "appId": "com.miku4ocean.imageviewerocr",
     "productName": "Image Viewer OCR",
-    "version": "1.4.0",
-    "description": "圖片檢視器 - 支援濾鏡、調整、OCR文字辨識、AI去背",
-    "main": "electron-main.js",
-    "scripts": {
-        "start": "electron .",
-        "build": "electron-builder --mac",
-        "build:dmg": "electron-builder --mac dmg",
-        "serve": "npx serve -l 3456 .",
-        "test:e2e": "playwright test"
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "icon": "assets/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
-    "author": "miku4ocean",
-    "license": "MIT",
-    "devDependencies": {
-        "@playwright/test": "^1.62.0",
-        "electron": "^44.3.0",
-        "electron-builder": "^26.15.3",
-        "playwright": "^1.62.0"
-    },
-    "build": {
-        "appId": "com.miku4ocean.imageviewerocr",
-        "productName": "Image Viewer OCR",
-        "mac": {
-            "category": "public.app-category.graphics-design",
-            "icon": "assets/icon.icns",
-            "target": [
-                "dmg",
-                "zip"
-            ]
-        },
-        "files": [
-            "**/*",
-            "!releases/**/*",
-            "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-            "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-            "!node_modules/.cache/**/*",
-            "!**/*.map"
-        ],
-        "directories": {
-            "output": "dist"
-        }
+    "files": [
+      "**/*",
+      "!releases/**/*",
+      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!node_modules/.cache/**/*",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "dist"
     }
+  }
 }
